@@ -107,7 +107,7 @@ def preprocess(dataset):
     # word_vectors = get_vectors(word_list)
     word_vectors = None
 
-    return all_data_indexes, word_vectors
+    return all_data_indexes, word_vectors, labels
 
 
 def get_vectors(word_list):
