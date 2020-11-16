@@ -89,7 +89,7 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
         test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
-        if epoch == 20:
+        if epoch % 10 == 0:
             test_labels.append(lb.reshape(-1))
             test_pred.append(pred.reshape(-1))
 
@@ -97,7 +97,7 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
 
     print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
 
-    if epoch == 20:
+    if epoch % 10 == 0:
         test_labels = torch.cat(test_labels).cpu().numpy()
         test_pred = torch.cat(test_pred).cpu().numpy()
         # for i in range(len(test_labels)):

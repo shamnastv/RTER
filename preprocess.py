@@ -9,7 +9,7 @@ import fasttext
 
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
-min_freq = 3
+min_freq = 5
 # max_len = 100
 
 
@@ -121,8 +121,8 @@ def preprocess(dataset):
     # print(all_data_indexes)
 
     # print(len(word_list))
-    # word_vectors = get_vectors(word_list)
-    word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
+    word_vectors = get_vectors(word_list)
+    # word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
 
     return all_data_indexes, word_vectors, labels
 
@@ -134,7 +134,7 @@ def get_vectors(word_list):
         word_vectors.append(model.get_word_vector(word_list[i]))
     model = None
     vec_dm = len(word_vectors[2])
-    word_vectors[0] = np.random.uniform(-0.01, 0.01, vec_dm)
+    word_vectors[0] = np.random.uniform(-0.1, 0.1, vec_dm)
     word_vectors[1] = np.zeros(vec_dm, dtype=np.float32)
     # print(word_vectors[:5])
     word_vectors = np.array(word_vectors)
