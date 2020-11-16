@@ -10,7 +10,7 @@ import fasttext
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
 min_freq = 3
-max_len = 30
+max_len = 100
 
 
 def dump_data(dataset, data_split, data):
@@ -34,6 +34,7 @@ def utf_to_ascii(s):
 
 
 def preprocess(dataset):
+    max_l = max_len
     word_to_id = {}
     word_list = ['<unk>', '<pad>']
     word_freq = {}
@@ -90,8 +91,8 @@ def preprocess(dataset):
                 for word in words:
                     if word in word_to_id:
                         d_id.append(word_to_id[word])
-                    else:
-                        d_id.append(word_to_id['<unk>'])
+                    # else:
+                    #     d_id.append(word_to_id['<unk>'])
 
                 seq_len = min(len(d_id), max_len)
                 d_id += [word_to_id['<pad>']] * (max_len - seq_len)
@@ -112,8 +113,8 @@ def preprocess(dataset):
     # print(all_data_indexes)
 
     # print(len(word_list))
-    word_vectors = get_vectors(word_list)
-    # word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
+    # word_vectors = get_vectors(word_list)
+    word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
 
     return all_data_indexes, word_vectors, labels
 

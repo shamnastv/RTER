@@ -93,6 +93,10 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
             test_labels.append(lb.reshape(-1))
             test_pred.append(pred.reshape(-1))
 
+    acc_test = test_correct/test_total
+
+    print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
+
     if epoch == 20:
         test_labels = torch.cat(test_labels).cpu().numpy()
         test_pred = torch.cat(test_pred).cpu().numpy()
@@ -100,10 +104,6 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
         #     print(test_labels[i], test_pred[i])
         print_distr(test_labels)
         print_distr(test_pred)
-
-    acc_test = test_correct/test_total
-
-    print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
 
 
 def main():
@@ -149,6 +149,8 @@ def main():
 
     model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+    print(model)
 
     for epoch in range(1, args.epochs + 1):
         train(epoch, model, optimizer, train_data, device)
