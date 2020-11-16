@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 
 def to_torch_tesnsor(data, device):
@@ -8,8 +9,8 @@ def to_torch_tesnsor(data, device):
         # print(label[i])
         if 0 in seq_len[i]:
             print(i)
-        feat[i] = torch.LongTensor(feat[i]).to(device)
-        label[i] = torch.LongTensor(label[i]).to(device)
-        seq_len[i] = torch.LongTensor(seq_len[i]).to(device)
+        feat[i] = torch.LongTensor(feat[i])
+        label[i] = np.array(label[i])
+        seq_len[i] = np.array(seq_len[i])
 
     return feat, label, seq_len

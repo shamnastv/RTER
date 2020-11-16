@@ -16,15 +16,16 @@ from util import to_torch_tesnsor
 criterion = nn.CrossEntropyLoss()
 
 
-def train(model, optimizer, train_data):
+def train(model, optimizer, train_data, device):
     model.train()
 
     feat, label, seq_len = train_data
     loss_accum = 0
     idx_train = np.random.permutation(len(feat))
     for i in idx_train:
+        lb = torch.from_numpy(label[i]).to(device)
         pred = model(feat[i], seq_len[i])
-        loss = criterion(pred, label[i].reshape(-1))
+        loss = criterion(pred, lb.reshape(-1))
 
         optimizer.zero_grad()
         loss.backward()
@@ -36,7 +37,7 @@ def train(model, optimizer, train_data):
     return loss_accum
 
 
-def validate(model, train_data, dev_data, test_data):
+def validate(model, train_data, dev_data, test_data, device):
     model.eval()
 
     feat, label, seq_len = train_data
@@ -44,8 +45,9 @@ def validate(model, train_data, dev_data, test_data):
     train_correct = 0
     train_total = 0
     for i in idx_train:
+        lb = torch.from_numpy(label[i]).to(device)
         pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        train_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
+        train_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         train_total += len(feat[i])
 
     acc_train = train_correct/train_total
@@ -55,8 +57,9 @@ def validate(model, train_data, dev_data, test_data):
     dev_correct = 0
     dev_total = 0
     for i in idx_dev:
+        lb = torch.from_numpy(label[i]).to(device)
         pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        dev_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
+        dev_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         dev_total += len(feat[i])
 
     acc_dev = dev_correct/dev_total
@@ -66,8 +69,9 @@ def validate(model, train_data, dev_data, test_data):
     test_correct = 0
     test_total = 0
     for i in idx_test:
+        lb = torch.from_numpy(label[i]).to(device)
         pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        test_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
+        test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
     acc_test = test_correct/test_total

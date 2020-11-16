@@ -19,14 +19,14 @@ class UtteranceGRU(nn.Module):
         idx_sort = np.argsort(-seq_lens)
         idx_unsort = np.argsort(idx_sort)
 
-        # idx_sort = torch.from_numpy(idx_sort).to(self.device)
-        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort)
+        idx_sort = torch.from_numpy(idx_sort).to(self.device)
+        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort).to(self.device)
 
         sent_packed = pack_padded_sequence(s_embs, s_lens)
         sent_output = self.gru(sent_packed)[0]
         sent_output = pad_packed_sequence(sent_output, total_length=dialogue.size(1))[0]
 
-        # idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
+        idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
         sent_output = sent_output.index_select(1, idx_unsort)
 
         output = sent_output.transpose(0, 1)
