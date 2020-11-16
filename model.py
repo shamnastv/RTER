@@ -20,7 +20,7 @@ class UtteranceGRU(nn.Module):
         idx_unsort = np.argsort(idx_sort)
 
         idx_sort = torch.from_numpy(idx_sort).to(self.device)
-        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort).to(self.device)
+        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort)
 
         sent_packed = pack_padded_sequence(s_embs, s_lens)
         sent_output = self.gru(sent_packed)[0]
@@ -63,6 +63,7 @@ class RTERModel(nn.Module):
     def forward(self, dialogue_ids, seq_lens):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
+        dialogue_ids = dialogue_ids.to(self.device)
         dialogue = self.embeddings(dialogue_ids)
 
         dialogue_h = self.utt_gru(dialogue, seq_lens)
