@@ -11,10 +11,17 @@ import math
 
 from model import RTERModel
 from preprocess import preprocess
-from util import to_torch_tesnsor
+from util import to_torch_tensor
 
 criterion = nn.CrossEntropyLoss()
 start_time = time.time()
+
+
+def print_distr(x):
+    dst = [0] * (max(x) + 1)
+    for i in x:
+        dst[i] += 1
+    print(dst)
 
 
 def train(epoch, model, optimizer, train_data, device):
@@ -82,15 +89,17 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
         test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
-        if epoch == 5:
+        if epoch == 20:
             test_labels.append(lb.reshape(-1))
             test_pred.append(pred.reshape(-1))
 
-    if epoch == 5:
-        test_labels = torch.cat(test_labels)
-        test_pred = torch.cat(test_pred)
-        for i in range(len(test_labels)):
-            print(test_labels[i], test_pred[i])
+    if epoch == 20:
+        test_labels = torch.cat(test_labels).cpu().numpy()
+        test_pred = torch.cat(test_pred).cpu().numpy()
+        # for i in range(len(test_labels)):
+        #     print(test_labels[i], test_pred[i])
+        print_distr(test_labels)
+        print_distr(test_pred)
 
     acc_test = test_correct/test_total
 
@@ -134,9 +143,9 @@ def main():
     word_embeddings.weight.data.copy_(torch.from_numpy(word_vectors))
     word_embeddings.weight.requires_grad = False
 
-    train_data = to_torch_tesnsor(all_data_indexes['train'], device)
-    dev_data = to_torch_tesnsor(all_data_indexes['dev'], device)
-    test_data = to_torch_tesnsor(all_data_indexes['test'], device)
+    train_data = to_torch_tensor(all_data_indexes['train'])
+    dev_data = to_torch_tensor(all_data_indexes['dev'])
+    test_data = to_torch_tensor(all_data_indexes['test'])
 
     model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)

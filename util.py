@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 
-def to_torch_tesnsor(data, device):
+def to_torch_tensor(data):
     feat, label, seq_len = data
 
     for i in range(len(feat)):
