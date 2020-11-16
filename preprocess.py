@@ -35,6 +35,7 @@ def utf_to_ascii(s):
 
 def preprocess(dataset):
     max_len = 0
+    max_seq_l = 0
     word_to_id = {}
     word_list = ['<unk>', '<pad>']
     word_freq = {}
@@ -103,6 +104,9 @@ def preprocess(dataset):
 
                 if seq_len <= 0:
                     continue
+                if seq_len > max_seq_l:
+                    max_seq_l = seq_len
+
                 e_id.append(label_to_id[e])
                 dia_id.append(d_id)
                 emo_id.append(e_id)
@@ -113,6 +117,7 @@ def preprocess(dataset):
         # print(dialogues_id[0][0])
         all_data_indexes[split] = (dialogues_id, emotions_id, seq_lens)
 
+    print('max_seq_len', max_seq_l)
     # print(all_data_indexes)
 
     # print(len(word_list))
