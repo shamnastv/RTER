@@ -3,28 +3,48 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
+from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 
 
 class UtteranceGRU(nn.Module):
-    def __init__(self, in_dm, hidden_dm, num_layers, dropout):
+    def __init__(self, in_dm, hidden_dm, num_layers, dropout, device):
         super(UtteranceGRU, self).__init__()
+        self.device = device
         self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dm, bidirectional=True,
                           num_layers=num_layers, dropout=dropout)
 
-    def forward(self):
-        pass
+    def forward(self, dialogue, seq_lens):
+
+        s_lens = np.sort(seq_lens)[::-1]
+        idx_sort = np.argsort(-seq_lens)
+        idx_unsort = np.argsort(idx_sort)
+
+        # idx_sort = torch.from_numpy(idx_sort).to(self.device)
+        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort)
+
+        sent_packed = pack_padded_sequence(s_embs, s_lens)
+        sent_output = self.gru(sent_packed)[0]
+        sent_output = pad_packed_sequence(sent_output, total_length=dialogue.size(1))[0]
+
+        idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
+        sent_output = sent_output.index_select(1, idx_unsort)
+
+        output = sent_output.transpose(0, 1)
+
+        return output
 
 
 class RTERModel(nn.Module):
-    def __init__(self, args, input_dm, num_clasees, embeddings, device):
+    def __init__(self, args, input_dm, hidden_dim, num_clasees, embeddings, device):
         super(RTERModel, self).__init__()
         self.num_classes = num_clasees
         self.hops = args.hops
         self.wind_1 = args.wind_1
         self.embeddings = embeddings
         self.device = device
+        self.hidden_dim = hidden_dim
 
-        self.utt_gru = UtteranceGRU(input_dm, args.hidden_dim, args.num_layers, args.dropout)
+        self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
         self.linear = nn.Linear(args.hidden_dim * 2, args.hidden_dim)
         self.dropout_utt = nn.Dropout(args.dropout)
 
@@ -33,29 +53,30 @@ class RTERModel(nn.Module):
 
         self.attGRU = nn.ModuleList()
         for hop in range(self.hops):
-            self.attGRU.append(AttGRU(d_model=100, bidirectional=True))
+            self.attGRU.append(AttGRU(hidden_dim=hidden_dim, bidirectional=True))
 
-        self.classifier = nn.Linear(100, self.num_classes)
+        self.classifier = nn.Linear(hidden_dim, self.num_classes)
 
     def init_hidden(self, num_directs, num_layers, batch_size, d_model):
         return torch.zeros(num_directs * num_layers, batch_size, d_model)
 
-    def forward(self, dialogue_ids):
+    def forward(self, dialogue_ids, seq_lens):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
         dialogue = self.embeddings(dialogue_ids)
 
-        dialogue_h = self.utt_gru(dialogue)
+        dialogue_h = self.utt_gru(dialogue, seq_lens)
         max_pool = torch.max(dialogue_h, dim=1)[0]
         utterance_embd = self.linear(max_pool)
         utterance_embd = F.tanh(utterance_embd)
-        utterance_embd = self.dropout_utt(utterance_embd)
+        utterance_embd = self.dropout_utt(utterance_embd).unsqueeze(1)
 
-        attn_weights = []
+        s_out = [[utterance_embd[0]]]
+
         masks = []
         batches = []
-        s_out = []
-        for i in range(utterance_embd.size()[0]):
+        # attn_weights = []
+        for i in range(1, utterance_embd.size()[0]):
             pad = max(self.wind_1 - i, 0)
             start = 0 if i < self.wind_1 + 1 else i - self.wind_1
             pad_tuple = [0, 0, 0, 0, pad, 0]
@@ -64,28 +85,29 @@ class RTERModel(nn.Module):
             mask = [1] * pad + [0] * (self.wind_1 - pad)
             masks.append(mask)
 
-        batches = torch.cat(batches, dim=1)
-        masks = torch.cat(masks, dim=1)
+        if len(batches) > 0:
+            batches = torch.cat(batches, dim=1)
+            masks = torch.cat(masks, dim=1)
 
-        q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
+            q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
 
-        a_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
-            1).to(self.device)  # b_size x 1 x len_k
+            a_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
+                1).to(self.device)  # b_size x 1 x len_k
 
-        mem_out = self.dropout_context(self.context_gru(batches)[0])
-        mem_fwd, mem_bwd = mem_out.chunk(2, -1)
-        mem_bank = (batches + mem_fwd + mem_bwd).transpose(0, 1).contiguous()
+            mem_out = self.dropout_context(self.context_gru(batches)[0])
+            mem_fwd, mem_bwd = mem_out.chunk(2, -1)
+            mem_bank = (batches + mem_fwd + mem_bwd).transpose(0, 1).contiguous()
 
-        query = utterance_embd[1:]
-        eps_mem = query
-        for hop in range(self.hops):
-            attn_hid = torch.zeros(2, masks.size()[0], 100).to(self.device)
-            attn_out, attn_weight = self.attGRU[hop](eps_mem, mem_bank, attn_hid, a_mask)
-            attn_weights.append(attn_weight.squeeze(1))
-            attn_out = self.dropout_mid(attn_out)
-            attn_out1, attn_out2 = attn_out.chunk(2, -1)
-            eps_mem = eps_mem + attn_out1 + attn_out2
-        s_out.append(eps_mem)
+            query = utterance_embd[1:]
+            # eps_mem = query
+            for hop in range(self.hops):
+                attn_hid = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
+                attn_out = self.attGRU[hop](query, mem_bank, attn_hid, a_mask)
+                # attn_weights.append(attn_weight.squeeze(1))
+                attn_out = self.dropout_mid(attn_out)
+                attn_out1, attn_out2 = attn_out.chunk(2, -1)
+                query = query + attn_out1 + attn_out2
+            s_out.append(query)
 
         s_context = torch.cat(s_out, dim=0).squeeze(1)
         soutput = self.classifier(s_context)
@@ -94,14 +116,14 @@ class RTERModel(nn.Module):
 
 
 class AttnGRUCell(nn.Module):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_dim, hidden_dim):
         super(AttnGRUCell, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.Wr = nn.Linear(input_size, hidden_size)
-        self.Ur = nn.Linear(hidden_size, hidden_size)
-        self.W = nn.Linear(input_size, hidden_size)
-        self.U = nn.Linear(hidden_size, hidden_size)
+        self.input_size = input_dim
+        self.hidden_size = hidden_dim
+        self.Wr = nn.Linear(input_dim, hidden_dim)
+        self.Ur = nn.Linear(hidden_dim, hidden_dim)
+        self.W = nn.Linear(input_dim, hidden_dim)
+        self.U = nn.Linear(hidden_dim, hidden_dim)
 
         self.initialize()
 
@@ -119,13 +141,13 @@ class AttnGRUCell(nn.Module):
 
 
 class AttGRU(nn.Module):
-    def __init__(self, d_model, bidirectional):
+    def __init__(self, hidden_dim, bidirectional):
         super(AttGRU, self).__init__()
-        self.d_model = d_model
+        self.hidden_dim = hidden_dim
         self.bidirectional = bidirectional
-        self.gru = AttnGRUCell(100, 100)
+        self.gru = AttnGRUCell(hidden_dim, hidden_dim)
         if self.bidirectional:
-            self.gru_bwd = AttnGRUCell(100, 100)
+            self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
 
     def forward(self, query, context, init_hidden, attn_mask=None):
         """
@@ -157,4 +179,4 @@ class AttGRU(nn.Module):
         if self.bidirectional:
             output = torch.cat([hidden, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
 
-        return output, scores
+        return output

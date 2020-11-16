@@ -76,9 +76,11 @@ def preprocess(dataset):
         dialogues, emotions = all_data[split]
         dialogues_id = []
         emotions_id = []
+        seq_lens = []
         for dia, emo in zip(dialogues, emotions):
             dia_id = []
             emo_id = []
+            sq_len = []
             for d, e in zip(dia, emo):
                 d_id = []
                 e_id = []
@@ -89,23 +91,25 @@ def preprocess(dataset):
                     else:
                         d_id.append(word_to_id['<unk>'])
 
-                if len(d_id) > max_len:
-                    d_id = d_id[:max_len]
-                else:
-                    d_id += [word_to_id['<pad>']] * (max_len - len(d_id))
+                seq_len = min(len(d_id), max_len)
+                d_id += [word_to_id['<pad>']] * (max_len - seq_len)
+                d_id = d_id[:max_len]
 
                 e_id.append(label_to_id[e])
                 dia_id.append(d_id)
                 emo_id.append(e_id)
+                sq_len.append(seq_len)
             dialogues_id.append(dia_id)
             emotions_id.append(emo_id)
-        all_data_indexes[split] = (dialogues_id, emotions_id)
+            seq_lens.append(sq_len)
+        print(dialogues_id[0][0])
+        all_data_indexes[split] = (dialogues_id, emotions_id, seq_lens)
 
     # print(all_data_indexes)
 
     print(len(word_list))
     # word_vectors = get_vectors(word_list)
-    word_vectors = None
+    word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
 
     return all_data_indexes, word_vectors, labels
 
