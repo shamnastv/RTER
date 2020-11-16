@@ -37,7 +37,6 @@ def train(epoch, model, optimizer, train_data, device):
 
     print('Epoch : ', epoch, 'loss training: ', loss_accum, 'Time : ', int(time.time() - start_time))
 
-
     return loss_accum
 
 
@@ -50,7 +49,8 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
     train_total = 0
     for i in idx_train:
         lb = torch.from_numpy(label[i]).to(device)
-        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        with torch.no_grad():
+            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
         train_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         train_total += len(feat[i])
 
@@ -62,7 +62,8 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
     dev_total = 0
     for i in idx_dev:
         lb = torch.from_numpy(label[i]).to(device)
-        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        with torch.no_grad():
+            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
         dev_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         dev_total += len(feat[i])
 
@@ -72,15 +73,24 @@ def validate(epoch, model, train_data, dev_data, test_data, device):
     idx_test = np.random.permutation(len(feat))
     test_correct = 0
     test_total = 0
+    test_labels = []
+    test_pred = []
     for i in idx_test:
         lb = torch.from_numpy(label[i]).to(device)
-        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        with torch.no_grad():
+            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
         test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
         if epoch == 5:
-            print(lb)
-            print(pred)
+            test_labels.append(lb.reshape(-1))
+            test_pred.append(pred.reshape(-1))
+
+    if epoch == 5:
+        test_labels = torch.cat(test_labels)
+        test_pred = torch.cat(test_pred)
+        for i in range(len(test_labels)):
+            print(test_labels[i], test_pred[i])
 
     acc_test = test_correct/test_total
 
@@ -91,15 +101,15 @@ def main():
     parser = argparse.ArgumentParser(description='Pytorch for RTER')
     parser.add_argument('--device', type=int, default=0, help='which gpu to use if any (default: 0)')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
-    parser.add_argument('--hidden_dim', type=int, default=100, help='hidden dimension')
+    parser.add_argument('--hidden_dim', type=int, default=200, help='hidden dimension')
     parser.add_argument('--hops', type=int, default=1, help='hidden dimension')
     parser.add_argument('--wind_1', type=int, default=10, help='hidden dimension')
     parser.add_argument('--num_layers', type=int, default=1, help='hidden dimension')
-    parser.add_argument('--epochs', type=int, default=350, help='number of epochs to train (default: 350)')
+    parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 350)')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate (default: 0.01)')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('-dataset', type=str, default='MELD', help='dataset')
-    parser.add_argument('--dropout', type=float, default=0.5, help='learning rate (default: 0.01)')
+    parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.01)')
 
     args = parser.parse_args()
 
@@ -113,6 +123,8 @@ def main():
     print('device : ', device, flush=True)
 
     all_data_indexes, word_vectors, labels = preprocess(args.dataset)
+
+    print(labels)
 
     input_dim = word_vectors.shape[1]
     vocab_size = word_vectors.shape[0]
