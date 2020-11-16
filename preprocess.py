@@ -127,6 +127,7 @@ def get_vectors(word_list):
     vec_dm = len(word_vectors[2])
     word_list[0] = np.random.uniform(-0.01, 0.01, vec_dm)
     word_vectors[1] = np.zeros(vec_dm)
+    print(word_vectors[:5])
     word_vectors = np.array(word_vectors)
     return word_vectors
 
