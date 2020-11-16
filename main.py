@@ -14,9 +14,10 @@ from preprocess import preprocess
 from util import to_torch_tesnsor
 
 criterion = nn.CrossEntropyLoss()
+start_time = time.time()
 
 
-def train(model, optimizer, train_data, device):
+def train(epoch, model, optimizer, train_data, device):
     model.train()
 
     feat, label, seq_len = train_data
@@ -33,6 +34,9 @@ def train(model, optimizer, train_data, device):
 
         loss = loss.detach().cpu().numpy()
         loss_accum += loss
+
+    print('Epoch : ', epoch, 'loss training: ', loss_accum, 'Time : ', int(time.time() - start_time))
+
 
     return loss_accum
 
