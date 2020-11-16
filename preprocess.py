@@ -10,7 +10,7 @@ import fasttext
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
 min_freq = 3
-max_len = 100
+# max_len = 100
 
 
 def dump_data(dataset, data_split, data):
@@ -34,7 +34,7 @@ def utf_to_ascii(s):
 
 
 def preprocess(dataset):
-    max_l = max_len
+    max_len = 0
     word_to_id = {}
     word_list = ['<unk>', '<pad>']
     word_freq = {}
@@ -54,6 +54,8 @@ def preprocess(dataset):
         for dia, emo in zip(dialogues, emotions):
             for d, e in zip(dia, emo):
                 words = d.split()
+                if len(words) > max_len:
+                    max_len = len(words)
                 for word in words:
                     if word in word_freq:
                         word_freq[word] += 1
