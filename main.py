@@ -41,7 +41,7 @@ def train(epoch, model, optimizer, train_data, device):
     return loss_accum
 
 
-def validate(model, train_data, dev_data, test_data, device):
+def validate(epoch, model, train_data, dev_data, test_data, device):
     model.eval()
 
     feat, label, seq_len = train_data
@@ -77,6 +77,10 @@ def validate(model, train_data, dev_data, test_data, device):
         pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
         test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
+
+        if epoch == 5:
+            print(lb)
+            print(pred)
 
     acc_test = test_correct/test_total
 
@@ -127,7 +131,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(epoch, model, optimizer, train_data, device)
-        validate(model, train_data, dev_data, test_data, device)
+        validate(epoch, model, train_data, dev_data, test_data, device)
         print('')
 
 
