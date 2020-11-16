@@ -6,6 +6,8 @@ def to_torch_tesnsor(data, device):
 
     for i in range(len(feat)):
         # print(label[i])
+        if 0 in seq_len[i]:
+            print(i)
         feat[i] = torch.LongTensor(feat[i]).to(device)
         label[i] = torch.LongTensor(label[i]).to(device)
         seq_len[i] = torch.LongTensor(seq_len[i]).to(device)

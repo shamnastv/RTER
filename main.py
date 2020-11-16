@@ -24,7 +24,7 @@ def train(model, optimizer, train_data):
     idx_train = np.random.permutation(len(feat))
     for i in idx_train:
         pred = model(feat[i], seq_len[i])
-        loss = criterion(pred, label[i])
+        loss = criterion(pred, label[i].reshape(-1))
 
         optimizer.zero_grad()
         loss.backward()
@@ -44,8 +44,8 @@ def validate(model, train_data, dev_data, test_data):
     train_correct = 0
     train_total = 0
     for i in idx_train:
-        pred = model(feat[i], seq_len[i])
-        train_correct += pred.eq(label.view_as(pred)).sum().cpu().item()
+        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        train_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
         train_total += len(feat[i])
 
     acc_train = train_correct/train_total
@@ -55,8 +55,8 @@ def validate(model, train_data, dev_data, test_data):
     dev_correct = 0
     dev_total = 0
     for i in idx_dev:
-        pred = model(feat[i], seq_len[i])
-        dev_correct += pred.eq(label.view_as(pred)).sum().cpu().item()
+        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        dev_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
         dev_total += len(feat[i])
 
     acc_dev = dev_correct/dev_total
@@ -66,8 +66,8 @@ def validate(model, train_data, dev_data, test_data):
     test_correct = 0
     test_total = 0
     for i in idx_test:
-        pred = model(feat[i], seq_len[i])
-        test_correct += pred.eq(label.view_as(pred)).sum().cpu().item()
+        pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+        test_correct += pred.eq(label[i].view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
     acc_test = test_correct/test_total
@@ -119,7 +119,8 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(model, optimizer, train_data)
-        validate(model, train_data, dev_data)
+        validate(model, train_data, dev_data, test_data)
+
 
 if __name__ == '__main__':
     main()

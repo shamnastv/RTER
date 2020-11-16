@@ -15,7 +15,7 @@ class UtteranceGRU(nn.Module):
 
     def forward(self, dialogue, seq_lens):
 
-        s_lens = np.sort(seq_lens)[::-1]
+        s_lens = np.sort(seq_lens)[::-1].copy()
         idx_sort = np.argsort(-seq_lens)
         idx_unsort = np.argsort(idx_sort)
 
@@ -26,7 +26,7 @@ class UtteranceGRU(nn.Module):
         sent_output = self.gru(sent_packed)[0]
         sent_output = pad_packed_sequence(sent_output, total_length=dialogue.size(1))[0]
 
-        idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
+        # idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
         sent_output = sent_output.index_select(1, idx_unsort)
 
         output = sent_output.transpose(0, 1)
@@ -71,7 +71,7 @@ class RTERModel(nn.Module):
         utterance_embd = F.tanh(utterance_embd)
         utterance_embd = self.dropout_utt(utterance_embd).unsqueeze(1)
 
-        s_out = [[utterance_embd[0]]]
+        s_out = [utterance_embd[:1]]
 
         masks = []
         batches = []
@@ -87,7 +87,7 @@ class RTERModel(nn.Module):
 
         if len(batches) > 0:
             batches = torch.cat(batches, dim=1)
-            masks = torch.cat(masks, dim=1)
+            masks = torch.tensor(masks).long().to(self.device)
 
             q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
 
@@ -104,7 +104,7 @@ class RTERModel(nn.Module):
                 attn_hid = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
                 attn_out = self.attGRU[hop](query, mem_bank, attn_hid, a_mask)
                 # attn_weights.append(attn_weight.squeeze(1))
-                attn_out = self.dropout_mid(attn_out)
+                attn_out = self.dropout_context(attn_out)
                 attn_out1, attn_out2 = attn_out.chunk(2, -1)
                 query = query + attn_out1 + attn_out2
             s_out.append(query)

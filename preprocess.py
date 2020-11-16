@@ -60,6 +60,8 @@ def preprocess(dataset):
                         word_freq[word] = 1
                 labels.add(e.strip())
 
+    labels = list(labels)
+
     for word in word_freq:
         if word_freq[word] >= min_freq:
             word_list.append(word)
@@ -95,6 +97,8 @@ def preprocess(dataset):
                 d_id += [word_to_id['<pad>']] * (max_len - seq_len)
                 d_id = d_id[:max_len]
 
+                if seq_len <= 0:
+                    continue
                 e_id.append(label_to_id[e])
                 dia_id.append(d_id)
                 emo_id.append(e_id)
@@ -102,14 +106,14 @@ def preprocess(dataset):
             dialogues_id.append(dia_id)
             emotions_id.append(emo_id)
             seq_lens.append(sq_len)
-        print(dialogues_id[0][0])
+        # print(dialogues_id[0][0])
         all_data_indexes[split] = (dialogues_id, emotions_id, seq_lens)
 
     # print(all_data_indexes)
 
-    print(len(word_list))
-    # word_vectors = get_vectors(word_list)
-    word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
+    # print(len(word_list))
+    word_vectors = get_vectors(word_list)
+    # word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
 
     return all_data_indexes, word_vectors, labels
 
