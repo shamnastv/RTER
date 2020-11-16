@@ -126,7 +126,7 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(1, args.epochs + 1):
-        train(model, optimizer, train_data, device)
+        train(epoch, model, optimizer, train_data, device)
         validate(model, train_data, dev_data, test_data, device)
         print('')
 
