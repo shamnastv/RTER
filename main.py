@@ -199,7 +199,7 @@ def main():
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('--dataset', type=str, default='MELD', help='dataset')
     parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.01)')
-    parser.add_argument('--print_fi', action="store_true", help='print f1 score')
+    parser.add_argument('--print_f1', action="store_true", help='print f1 score')
 
     args = parser.parse_args()
 
