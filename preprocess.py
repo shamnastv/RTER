@@ -9,7 +9,7 @@ import fasttext
 
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
-min_freq = 5
+min_freq = 2
 # max_len = 100
 
 
@@ -24,13 +24,28 @@ def read_data(dataset, data_split):
 
 
 def utf_to_ascii(s):
-    s = ''.join(
-        c for c in unicodedata.normalize('NFD', s.lower())
-        if unicodedata.category(c) != 'Mn'
-    ).strip()
-    s = re.sub(r"([!?])", r" \1", s)
-    s = re.sub(r"[^a-zA-Z!?]+", r" ", s)
-    return s
+    # s = ''.join(
+    #     c for c in unicodedata.normalize('NFD', s.lower())
+    #     if unicodedata.category(c) != 'Mn'
+    # ).strip()
+    # s = re.sub(r"([!?])", r" \1", s)
+    # s = re.sub(r"[^a-zA-Z!?]+", r" ", s)
+    # return s
+    string = s
+    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+    string = re.sub(r"\'s", " \'s", string)
+    string = re.sub(r"\'ve", " \'ve", string)
+    string = re.sub(r"n\'t", " n\'t", string)
+    string = re.sub(r"\'re", " \'re", string)
+    string = re.sub(r"\'d", " \'d", string)
+    string = re.sub(r"\'ll", " \'ll", string)
+    string = re.sub(r",", " , ", string)
+    string = re.sub(r"!", " ! ", string)
+    string = re.sub(r"\(", " ( ", string)
+    string = re.sub(r"\)", " ) ", string)
+    string = re.sub(r"\?", " ? ", string)
+    string = re.sub(r"\s{2,}", " ", string)
+    return string.strip().lower()
 
 
 def preprocess(dataset):
@@ -80,6 +95,7 @@ def preprocess(dataset):
 
     all_data_indexes = {}
 
+    print(len(word_freq))
     for split in data_splits:
         dialogues, emotions = all_data[split]
         dialogues_id = []
@@ -96,14 +112,15 @@ def preprocess(dataset):
                 for word in words:
                     if word in word_to_id:
                         d_id.append(word_to_id[word])
-                    # else:
-                    #     d_id.append(word_to_id['<unk>'])
+                    else:
+                        d_id.append(word_to_id['<unk>'])
 
                 seq_len = min(len(d_id), max_len)
                 d_id += [word_to_id['<pad>']] * (max_len - seq_len)
                 d_id = d_id[:max_len]
 
                 if seq_len <= 0:
+                    print(dia, e)
                     continue
                 if seq_len > max_seq_l:
                     max_seq_l = seq_len
@@ -123,12 +140,14 @@ def preprocess(dataset):
 
     # print(len(word_list))
     word_vectors = get_vectors(word_list)
-    # word_vectors = np.random.uniform(-0.01, 0.01, (len(word_list), 300))
+    # word_vectors = np.random.uniform(-0.1, 0.1, (len(word_list), 300))
 
     return all_data_indexes, word_vectors, labels
 
 
 def get_vectors(word_list):
+    print(len(word_list))
+    print(word_list)
     model = fasttext.load_model('model')
     word_vectors = [0, 1]
     for i in range(2, len(word_list)):
