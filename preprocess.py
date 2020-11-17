@@ -107,7 +107,7 @@ def preprocess(dataset):
             sq_len = []
             for d, e in zip(dia, emo):
                 d_id = []
-                e_id = []
+                # e_id = []
                 words = d.split()
                 for word in words:
                     if word in word_to_id:
@@ -125,9 +125,10 @@ def preprocess(dataset):
                 if seq_len > max_seq_l:
                     max_seq_l = seq_len
 
-                e_id.append(label_to_id[e])
+                emo_id.append(label_to_id[e])
+                # e_id.append(label_to_id[e])
                 dia_id.append(d_id)
-                emo_id.append(e_id)
+                # emo_id.append(e_id)
                 sq_len.append(seq_len)
             dialogues_id.append(dia_id)
             emotions_id.append(emo_id)
