@@ -17,19 +17,24 @@ class UtteranceGRU(nn.Module):
 
     def forward(self, dialogue, seq_lens):
 
-        uttr_lengths_sorted = np.sort(seq_lens)[::-1].copy()
-        index_uttr_lengths_sorted = np.argsort(-seq_lens)
-        index_uttr_lengths_unsort = np.argsort(index_uttr_lengths_sorted)
-        index_uttr_lengths_sorted = torch.from_numpy(index_uttr_lengths_sorted).to(self.device)
-        index_uttr_lengths_unsort = torch.from_numpy(index_uttr_lengths_unsort).to(self.device)
+        # uttr_lengths_sorted = np.sort(seq_lens)[::-1].copy()
+        # index_uttr_lengths_sorted = np.argsort(-seq_lens)
+        # index_uttr_lengths_unsort = np.argsort(index_uttr_lengths_sorted)
+        # index_uttr_lengths_sorted = torch.from_numpy(index_uttr_lengths_sorted).to(self.device)
+        # index_uttr_lengths_unsort = torch.from_numpy(index_uttr_lengths_unsort).to(self.device)
+        #
+        # dialogue_sorted = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
+        #
+        # dialogue_packed = pack_padded_sequence(dialogue_sorted, uttr_lengths_sorted)
+        # dialogue_embd = self.gru(dialogue_packed)[0]
+        # dialogue_embd = pad_packed_sequence(dialogue_embd, total_length=dialogue.shape[1])[0]
+        #
+        # dialogue_embd = dialogue_embd.index_select(1, index_uttr_lengths_unsort).transpose(0, 1)
 
-        dialogue_sorted = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
-
-        dialogue_packed = pack_padded_sequence(dialogue_sorted, uttr_lengths_sorted)
+        uttr_lengths = torch.from_numpy(seq_lens).to(self.device)
+        dialogue_packed = pack_padded_sequence(dialogue, uttr_lengths, enforce_sorted=False, batch_first=True)
         dialogue_embd = self.gru(dialogue_packed)[0]
-        dialogue_embd = pad_packed_sequence(dialogue_embd, total_length=dialogue.shape[1])[0]
-
-        dialogue_embd = dialogue_embd.index_select(1, index_uttr_lengths_unsort).transpose(0, 1)
+        dialogue_embd = pad_packed_sequence(dialogue_embd, batch_first=True, total_length=dialogue.shape[1])[0]
 
         utterance_embd = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd = self.linear(utterance_embd)
