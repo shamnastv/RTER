@@ -9,7 +9,7 @@ import fasttext
 
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
-min_freq = 2
+min_freq = 1
 # max_len = 100
 
 
