@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, invert_permutation
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class UtteranceGRU(nn.Module):
@@ -34,7 +34,7 @@ class UtteranceGRU(nn.Module):
         uttr_lengths = torch.from_numpy(seq_lens).to(self.device)
         lengths, sorted_indices = torch.sort(uttr_lengths, descending=True)
         sorted_indices = sorted_indices.to(self.device)
-        unsorted_indices = invert_permutation(sorted_indices)
+        _, unsorted_indices = torch.sort(uttr_lengths, descending=False)
 
         dialogue_sorted = dialogue.index_select(0, sorted_indices)
 
