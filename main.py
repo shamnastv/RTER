@@ -112,7 +112,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--hidden_dim', type=int, default=100, help='hidden dimension')
     parser.add_argument('--hops', type=int, default=1, help='hidden dimension')
-    parser.add_argument('--K', type=int, default=40, help='hidden dimension')
+    parser.add_argument('--max_window_size', type=int, default=40, help='hidden dimension')
     parser.add_argument('--num_layers', type=int, default=1, help='hidden dimension')
     parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 350)')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate (default: 0.01)')

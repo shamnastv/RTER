@@ -7,31 +7,38 @@ from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 
 
 class UtteranceGRU(nn.Module):
-    def __init__(self, in_dm, hidden_dm, num_layers, dropout, device):
+    def __init__(self, in_dm, hidden_dim, num_layers, dropout, device):
         super(UtteranceGRU, self).__init__()
         self.device = device
-        self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dm, bidirectional=True,
-                          num_layers=num_layers, dropout=dropout)
+        self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dim, bidirectional=True,
+                          num_layers=num_layers, dropout=0)
+        self.linear = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, dialogue, seq_lens):
 
-        s_lens = np.sort(seq_lens)[::-1].copy()
-        idx_sort = np.argsort(-seq_lens)
-        idx_unsort = np.argsort(idx_sort)
+        uttr_lengths_sorted = np.sort(seq_lens)[::-1].copy()
+        index_uttr_lengths_sorted = np.argsort(-seq_lens)
+        index_uttr_lengths_unsort = np.argsort(index_uttr_lengths_sorted)
+        index_uttr_lengths_sorted = torch.from_numpy(index_uttr_lengths_sorted).to(self.device)
 
-        idx_sort = torch.from_numpy(idx_sort).to(self.device)
-        s_embs = dialogue.transpose(0, 1).index_select(1, idx_sort)
+        s_embs = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
 
-        sent_packed = pack_padded_sequence(s_embs, s_lens)
+        sent_packed = pack_padded_sequence(s_embs, uttr_lengths_sorted)
         sent_output = self.gru(sent_packed)[0]
-        sent_output = pad_packed_sequence(sent_output, total_length=dialogue.size(1))[0]
+        sent_output = pad_packed_sequence(sent_output, total_length=dialogue.shape[1])[0]
 
-        idx_unsort = torch.from_numpy(idx_unsort).to(self.device)
-        sent_output = sent_output.index_select(1, idx_unsort)
+        index_uttr_lengths_unsort = torch.from_numpy(index_uttr_lengths_unsort).to(self.device)
+        sent_output = sent_output.index_select(1, index_uttr_lengths_unsort)
 
         output = sent_output.transpose(0, 1)
 
-        return output
+        max_pool = torch.max(output, dim=1)[0]
+        utterance_embd = self.linear(max_pool)
+        utterance_embd = torch.tanh(utterance_embd)
+        utterance_embd = self.dropout(utterance_embd).unsqueeze(1)
+
+        return utterance_embd
 
 
 class RTERModel(nn.Module):
@@ -39,14 +46,12 @@ class RTERModel(nn.Module):
         super(RTERModel, self).__init__()
         self.num_classes = num_clasees
         self.hops = args.hops
-        self.K = args.K
+        self.max_window_size = args.max_window_size
         self.embeddings = embeddings
         self.device = device
         self.hidden_dim = hidden_dim
 
         self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
-        self.linear = nn.Linear(args.hidden_dim * 2, args.hidden_dim)
-        self.dropout_utt = nn.Dropout(args.dropout)
 
         self.context_gru = nn.GRU(args.hidden_dim, args.hidden_dim, num_layers=1, bidirectional=True)
         self.dropout_context = nn.Dropout(0.3)
@@ -63,26 +68,20 @@ class RTERModel(nn.Module):
         dialogue_ids = dialogue_ids.to(self.device)
         dialogue = self.embeddings(dialogue_ids)
 
-        dialogue_h = self.utt_gru(dialogue, seq_lens)
-        max_pool = torch.max(dialogue_h, dim=1)[0]
-        utterance_embd = self.linear(max_pool)
-        utterance_embd = F.tanh(utterance_embd)
-        utterance_embd = self.dropout_utt(utterance_embd).unsqueeze(1)
+        utterance_embd = self.utt_gru(dialogue, seq_lens)
 
         s_out = [utterance_embd[:1]]
 
         masks = []
         batches = []
-        # attn_weights = []
-        # K = len(utterance_embd.size()[0])
-        K = min(self.K, utterance_embd.size()[0] - 1)
+        window_size = min(self.max_window_size, utterance_embd.size()[0] - 1)
         for i in range(1, utterance_embd.size()[0]):
-            pad = max(K - i, 0)
-            start = 0 if i < K + 1 else i - K
+            pad = max(window_size - i, 0)
+            start = 0 if i < window_size + 1 else i - window_size
             pad_tuple = [0, 0, 0, 0, pad, 0]
             m_pad = F.pad(utterance_embd[start:i], pad_tuple)
             batches.append(m_pad)
-            mask = [1] * pad + [0] * (K - pad)
+            mask = [1] * pad + [0] * (window_size - pad)
             masks.append(mask)
 
         if len(batches) > 0:
@@ -99,7 +98,6 @@ class RTERModel(nn.Module):
             mem_bank = (batches + mem_fwd + mem_bwd).transpose(0, 1).contiguous()
 
             query = utterance_embd[1:]
-            # eps_mem = query
             for hop in range(self.hops):
                 attn_hid = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
                 attn_out = self.attGRU[hop](query, mem_bank, attn_hid, a_mask)
