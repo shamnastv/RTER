@@ -117,7 +117,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 350)')
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate (default: 0.01)')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
-    parser.add_argument('-dataset', type=str, default='MELD', help='dataset')
+    parser.add_argument('--dataset', type=str, default='MELD', help='dataset')
     parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.01)')
 
     args = parser.parse_args()
