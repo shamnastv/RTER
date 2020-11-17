@@ -24,6 +24,25 @@ def print_distr(x):
     print(dst)
 
 
+def print_distr_y(y, device):
+    print('Class distributions')
+    x = []
+    for e in y:
+        x += e
+    freq = [0] * len(set(x))
+    for i in x:
+        freq[i] += 1
+
+    m = 1
+    for i in freq:
+        if i < m:
+            m = i
+
+    weights = [m / i if i != 0 else 1 for i in freq]
+    global criterion
+    criterion = nn.CrossEntropyLoss(weight=torch.FloatTensor(weights).to(device))
+
+
 def train(epoch, model, optimizer, train_data, device):
     model.train()
 
@@ -132,6 +151,7 @@ def main():
     print('device : ', device, flush=True)
 
     all_data_indexes, word_vectors, labels = preprocess(args.dataset)
+    print_distr_y(all_data_indexes['train'][1])
 
     print(labels)
 
