@@ -8,10 +8,10 @@
 
 printf "\n\nHidden Dimension\n\n"
 
-python3 main.py --hidden_dim 100 --max_window_size 40 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
+python3 main.py --hidden_dim 100 --max_window_size 20 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
 printf "\n\n\n\n"
 
-python3 main.py --hidden_dim 200 --max_window_size 40 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
+python3 main.py --hidden_dim 200 --max_window_size 20 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
 printf "\n\n\n\n"
 
-python3 main.py --hidden_dim 300 --max_window_size 40 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
+python3 main.py --hidden_dim 300 --max_window_size 20 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1
