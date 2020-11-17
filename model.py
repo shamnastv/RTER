@@ -21,20 +21,18 @@ class UtteranceGRU(nn.Module):
         index_uttr_lengths_sorted = np.argsort(-seq_lens)
         index_uttr_lengths_unsort = np.argsort(index_uttr_lengths_sorted)
         index_uttr_lengths_sorted = torch.from_numpy(index_uttr_lengths_sorted).to(self.device)
-
-        s_embs = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
-
-        sent_packed = pack_padded_sequence(s_embs, uttr_lengths_sorted)
-        sent_output = self.gru(sent_packed)[0]
-        sent_output = pad_packed_sequence(sent_output, total_length=dialogue.shape[1])[0]
-
         index_uttr_lengths_unsort = torch.from_numpy(index_uttr_lengths_unsort).to(self.device)
-        sent_output = sent_output.index_select(1, index_uttr_lengths_unsort)
 
-        output = sent_output.transpose(0, 1)
+        dialogue_sorted = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
 
-        max_pool = torch.max(output, dim=1)[0]
-        utterance_embd = self.linear(max_pool)
+        dialogue_packed = pack_padded_sequence(dialogue_sorted, uttr_lengths_sorted)
+        dialogue_embd = self.gru(dialogue_packed)[0]
+        dialogue_embd = pad_packed_sequence(dialogue_embd, total_length=dialogue.shape[1])[0]
+
+        dialogue_embd = dialogue_embd.index_select(1, index_uttr_lengths_unsort).transpose(0, 1)
+
+        utterance_embd = torch.max(dialogue_embd, dim=1)[0]
+        utterance_embd = self.linear(utterance_embd)
         utterance_embd = torch.tanh(utterance_embd)
         utterance_embd = self.dropout(utterance_embd).unsqueeze(1)
 
