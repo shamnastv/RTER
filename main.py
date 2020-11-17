@@ -151,7 +151,7 @@ def main():
     print('device : ', device, flush=True)
 
     all_data_indexes, word_vectors, labels = preprocess(args.dataset)
-    print_distr_y(all_data_indexes['train'][1])
+    print_distr_y(all_data_indexes['train'][1], device)
 
     print(labels)
 
