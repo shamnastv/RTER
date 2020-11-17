@@ -146,8 +146,8 @@ def preprocess(dataset):
 
 
 def get_vectors(word_list):
-    print(len(word_list))
-    print(word_list)
+    # print(len(word_list))
+    # print(word_list)
     model = fasttext.load_model('model')
     word_vectors = [0, 1]
     for i in range(2, len(word_list)):

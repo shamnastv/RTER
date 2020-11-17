@@ -39,7 +39,7 @@ class RTERModel(nn.Module):
         super(RTERModel, self).__init__()
         self.num_classes = num_clasees
         self.hops = args.hops
-        self.wind_1 = args.wind_1
+        self.K = args.K
         self.embeddings = embeddings
         self.device = device
         self.hidden_dim = hidden_dim
@@ -78,12 +78,12 @@ class RTERModel(nn.Module):
         batches = []
         # attn_weights = []
         for i in range(1, utterance_embd.size()[0]):
-            pad = max(self.wind_1 - i, 0)
-            start = 0 if i < self.wind_1 + 1 else i - self.wind_1
+            pad = max(self.K - i, 0)
+            start = 0 if i < self.K + 1 else i - self.K
             pad_tuple = [0, 0, 0, 0, pad, 0]
             m_pad = F.pad(utterance_embd[start:i], pad_tuple)
             batches.append(m_pad)
-            mask = [1] * pad + [0] * (self.wind_1 - pad)
+            mask = [1] * pad + [0] * (self.K - pad)
             masks.append(mask)
 
         if len(batches) > 0:
@@ -135,7 +135,7 @@ class AttnGRUCell(nn.Module):
         init.xavier_normal_(self.U.state_dict()['weight'])
 
     def forward(self, c, hi_1, g):
-        r_i = F.sigmoid(self.Wr(c) + self.Ur(hi_1))
+        r_i = torch.sigmoid(self.Wr(c) + self.Ur(hi_1))
         h_tilda = F.tanh(self.W(c) + r_i * self.U(hi_1))
         hi = g * h_tilda + (1 - g) * hi_1
         return hi
