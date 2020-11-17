@@ -57,9 +57,6 @@ class RTERModel(nn.Module):
 
         self.classifier = nn.Linear(hidden_dim, self.num_classes)
 
-    def init_hidden(self, num_directs, num_layers, batch_size, d_model):
-        return torch.zeros(num_directs * num_layers, batch_size, d_model)
-
     def forward(self, dialogue_ids, seq_lens):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
@@ -77,13 +74,15 @@ class RTERModel(nn.Module):
         masks = []
         batches = []
         # attn_weights = []
+        # K = len(utterance_embd.size()[0])
+        K = min(self.K, utterance_embd.size()[0] - 1)
         for i in range(1, utterance_embd.size()[0]):
-            pad = max(self.K - i, 0)
-            start = 0 if i < self.K + 1 else i - self.K
+            pad = max(K - i, 0)
+            start = 0 if i < K + 1 else i - K
             pad_tuple = [0, 0, 0, 0, pad, 0]
             m_pad = F.pad(utterance_embd[start:i], pad_tuple)
             batches.append(m_pad)
-            mask = [1] * pad + [0] * (self.K - pad)
+            mask = [1] * pad + [0] * (K - pad)
             masks.append(mask)
 
         if len(batches) > 0:

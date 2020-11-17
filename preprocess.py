@@ -13,13 +13,13 @@ min_freq = 1
 # max_len = 100
 
 
-def dump_data(dataset, data_split, data):
-    with open(dataset + data_split, 'wb') as f:
+def dump_data(dataset, data):
+    with open(dataset, 'wb') as f:
         pickle.dump(data, f)
 
 
-def read_data(dataset, data_split):
-    f = open(dataset + data_split, 'rb')
+def read_data(dataset):
+    f = open(dataset, 'rb')
     return pickle.load(f)
 
 
