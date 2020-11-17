@@ -28,7 +28,7 @@ def print_distr_y(y, device):
     print('Class distributions')
     x = []
     for e in y:
-        x += e
+        x += e[0]
     freq = [0] * len(set(x))
     for i in x:
         freq[i] += 1
