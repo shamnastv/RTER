@@ -32,9 +32,9 @@ class UtteranceGRU(nn.Module):
         # dialogue_embd = dialogue_embd.index_select(1, index_uttr_lengths_unsort).transpose(0, 1)
 
         uttr_lengths = torch.from_numpy(seq_lens).to(self.device)
-        lengths, sorted_indices = torch.sort(uttr_lengths, descending=True)
+        uttr_lengths, sorted_indices = torch.sort(uttr_lengths, descending=True)
         sorted_indices = sorted_indices.to(self.device)
-        _, unsorted_indices = torch.sort(uttr_lengths, descending=False)
+        _, unsorted_indices = torch.sort(sorted_indices, descending=False)
 
         dialogue_sorted = dialogue.index_select(0, sorted_indices)
 
