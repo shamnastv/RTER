@@ -1,8 +1,7 @@
 import fasttext
 
 dataset = 'data/fil9'
-# model = fasttext.train_unsupervised('data/corpus/R8.clean.txt', dim=300)
-model = fasttext.train_unsupervised(dataset, dim=400)
+model = fasttext.train_unsupervised(dataset)
 
 model.save_model("model")
 
