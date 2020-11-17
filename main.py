@@ -24,7 +24,7 @@ def print_distr(x):
     print(dst)
 
 
-def print_distr_y(y, device):
+def print_distr_y(y, label, device):
     print('Class distributions')
     x = []
     for e in y:
@@ -33,6 +33,8 @@ def print_distr_y(y, device):
     for i in x:
         freq[i] += 1
 
+    print(label)
+    print(freq)
     m = 1
     for i in freq:
         if i < m:
@@ -66,51 +68,110 @@ def train(epoch, model, optimizer, train_data, device):
     return loss_accum
 
 
-def validate(epoch, model, train_data, dev_data, test_data, device):
+def validate(epoch, model, train_data, dev_data, test_data, label_list, device, print_f1):
     model.eval()
 
+    num_labels = len(label_list)
+    print(label_list)
+
+    tp = np.zeros(num_labels)
+    tp_fp = np.zeros(num_labels)
+    tp_fn = np.zeros(num_labels)
+
     feat, label, seq_len = train_data
-    idx_train = np.random.permutation(len(feat))
     train_correct = 0
     train_total = 0
-    for i in idx_train:
-        lb = torch.from_numpy(label[i]).to(device)
+    for i in range(len(feat)):
+        true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
             pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        train_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
+        train_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         train_total += len(feat[i])
+
+        if print_f1:
+            true_label = true_label.reshape(-1)
+            pred = pred.reshape(-1)
+            for j in range(len(true_label)):
+                idx = true_label[j].item()
+                tp_fn[idx] += 1
+                if true_label[j] == pred[j]:
+                    tp[idx] += 1
+                tp_fp[pred[j]] += 1
+
+    if print_f1:
+        recall = [np.round(itp / itp_fn * 100, 2) if itp_fn > 0 else 0 for itp, itp_fn in zip(tp, tp_fn)]
+        precision = [np.round(itp / itp_fp * 100, 2) if itp_fp > 0 else 0 for itp, itp_fp in zip(tp, tp_fp)]
+        f1 = [np.round(2 * r * p / (r + p), 2) if r + p > 0 else 0 for r, p in zip(recall, precision)]
+        print('train f1 : ', f1)
 
     acc_train = train_correct/train_total
 
+    tp = np.zeros(num_labels)
+    tp_fp = np.zeros(num_labels)
+    tp_fn = np.zeros(num_labels)
+
     feat, label, seq_len = dev_data
-    idx_dev = np.random.permutation(len(feat))
     dev_correct = 0
     dev_total = 0
-    for i in idx_dev:
-        lb = torch.from_numpy(label[i]).to(device)
+    for i in range(len(feat)):
+        true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
             pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        dev_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
+        dev_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         dev_total += len(feat[i])
+
+        if print_f1:
+            true_label = true_label.reshape(-1)
+            pred = pred.reshape(-1)
+            for j in range(len(true_label)):
+                idx = true_label[j].item()
+                tp_fn[idx] += 1
+                if true_label[j] == pred[j]:
+                    tp[idx] += 1
+                tp_fp[pred[j]] += 1
+    if print_f1:
+        recall = [np.round(itp / itp_fn * 100, 2) if itp_fn > 0 else 0 for itp, itp_fn in zip(tp, tp_fn)]
+        precision = [np.round(itp / itp_fp * 100, 2) if itp_fp > 0 else 0 for itp, itp_fp in zip(tp, tp_fp)]
+        f1 = [np.round(2 * r * p / (r + p), 2) if r + p > 0 else 0 for r, p in zip(recall, precision)]
+        print('dev f1 : ', f1)
 
     acc_dev = dev_correct/dev_total
 
+    tp = np.zeros(num_labels)
+    tp_fp = np.zeros(num_labels)
+    tp_fn = np.zeros(num_labels)
+
     feat, label, seq_len = test_data
-    idx_test = np.random.permutation(len(feat))
     test_correct = 0
     test_total = 0
     test_labels = []
     test_pred = []
-    for i in idx_test:
-        lb = torch.from_numpy(label[i]).to(device)
+    for i in range(len(feat)):
+        true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
             pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
-        test_correct += pred.eq(lb.view_as(pred)).sum().cpu().item()
+        test_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
         if epoch % 10 == 0:
-            test_labels.append(lb.reshape(-1))
+            test_labels.append(true_label.reshape(-1))
             test_pred.append(pred.reshape(-1))
+
+        if print_f1:
+            true_label = true_label.reshape(-1)
+            pred = pred.reshape(-1)
+            for j in range(len(true_label)):
+                idx = true_label[j].item()
+                tp_fn[idx] += 1
+                if true_label[j] == pred[j]:
+                    tp[idx] += 1
+                tp_fp[pred[j]] += 1
+
+    if print_f1:
+        recall = [np.round(itp / itp_fn * 100, 2) if itp_fn > 0 else 0 for itp, itp_fn in zip(tp, tp_fn)]
+        precision = [np.round(itp / itp_fp * 100, 2) if itp_fp > 0 else 0 for itp, itp_fp in zip(tp, tp_fp)]
+        f1 = [np.round(2 * r * p / (r + p), 2) if r + p > 0 else 0 for r, p in zip(recall, precision)]
+        print('dev f1 : ', f1)
 
     acc_test = test_correct/test_total
 
@@ -138,6 +199,7 @@ def main():
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('--dataset', type=str, default='MELD', help='dataset')
     parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.01)')
+    parser.add_argument('--print_fi', action="store_true", help='print f1 score')
 
     args = parser.parse_args()
 
@@ -150,14 +212,14 @@ def main():
         torch.cuda.manual_seed_all(0)
     print('device : ', device, flush=True)
 
-    all_data_indexes, word_vectors, labels = preprocess(args.dataset)
-    print_distr_y(all_data_indexes['train'][1], device)
+    all_data_indexes, word_vectors, label_list = preprocess(args.dataset)
+    print_distr_y(all_data_indexes['train'][1], label_list, device)
 
-    print(labels)
+    print(label_list)
 
     input_dim = word_vectors.shape[1]
     vocab_size = word_vectors.shape[0]
-    num_classes = len(labels)
+    num_classes = len(label_list)
 
     word_embeddings = nn.Embedding(vocab_size, input_dim, padding_idx=1)
     word_embeddings.weight.data.copy_(torch.from_numpy(word_vectors))
@@ -174,7 +236,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(epoch, model, optimizer, train_data, device)
-        validate(epoch, model, train_data, dev_data, test_data, device)
+        validate(epoch, model, train_data, dev_data, test_data, label_list, device, args.print_f1)
         print('')
 
 
