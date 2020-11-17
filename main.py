@@ -171,7 +171,7 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
         recall = [np.round(itp / itp_fn * 100, 2) if itp_fn > 0 else 0 for itp, itp_fn in zip(tp, tp_fn)]
         precision = [np.round(itp / itp_fp * 100, 2) if itp_fp > 0 else 0 for itp, itp_fp in zip(tp, tp_fp)]
         f1 = [np.round(2 * r * p / (r + p), 2) if r + p > 0 else 0 for r, p in zip(recall, precision)]
-        print('dev f1 : ', f1)
+        print('test f1 : ', f1)
 
     acc_test = test_correct/test_total
 
