@@ -81,6 +81,7 @@ def preprocess(dataset):
                 labels.add(e.strip())
 
     labels = list(labels)
+    labels.sort()
     print('max_len', max_len)
 
     for word in word_freq:
