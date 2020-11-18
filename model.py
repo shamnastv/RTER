@@ -46,7 +46,7 @@ class UtteranceGRU(nn.Module):
         dialogue_embd = pad_packed_sequence(dialogue_embd, batch_first=True, total_length=dialogue.shape[1])[0]
         dialogue_embd = dialogue_embd.index_select(0, unsorted_indices)
 
-        att_w = F.softmax(self.attention(dialogue_embd))
+        att_w = F.softmax(self.attention(dialogue_embd), dim=1)
         utterance_embd = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
 
         # utterance_embd = torch.max(dialogue_embd, dim=1)[0]
