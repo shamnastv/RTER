@@ -168,6 +168,10 @@ def get_vectors(word_list):
     word_vectors[1] = np.zeros(vec_dm, dtype=np.float32)
     # print(word_vectors[:5])
     word_vectors = np.array(word_vectors)
+
+    sum_of_rows = word_vectors.sum(axis=1) + .0000001
+    word_vectors = word_vectors / sum_of_rows[:, np.newaxis]
+
     return word_vectors
 
 
