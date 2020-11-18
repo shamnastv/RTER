@@ -19,6 +19,8 @@ start_time = time.time()
 max_dev_accuracy = 0
 test_accuracy = 0
 max_acc_epoch = 0
+max_test_f1 = 0
+
 
 
 def print_distr(x):
@@ -179,7 +181,9 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
 
     acc_test = test_correct/test_total
 
-    global max_acc_epoch, max_dev_accuracy, test_accuracy
+    global max_acc_epoch, max_dev_accuracy, test_accuracy, max_test_f1
+    if max_test_f1 < np.mean(f1):
+        max_test_f1 = np.mean(f1)
     if acc_dev > max_dev_accuracy:
         max_dev_accuracy = acc_dev
         max_acc_epoch = epoch
@@ -188,7 +192,8 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
         scheduler.step()
 
     print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
-    print('max validation accuracy : ', max_dev_accuracy, 'max acc epoch : ', max_acc_epoch, flush=True)
+    print('max validation accuracy :', max_dev_accuracy, 'max acc epoch :', max_acc_epoch,
+          'max f1 :', max_test_f1, flush=True)
 
     if epoch % 10 == 0:
         test_labels = torch.cat(test_labels).cpu().numpy()

@@ -56,24 +56,26 @@ class AttnGRUCell(nn.Module):
         super(AttnGRUCell, self).__init__()
         self.input_size = input_dim
         self.hidden_size = hidden_dim
-        self.Wr = nn.Linear(input_dim, hidden_dim)
-        self.Ur = nn.Linear(hidden_dim, hidden_dim)
-        self.W = nn.Linear(input_dim, hidden_dim)
-        self.U = nn.Linear(hidden_dim, hidden_dim)
+        self.W_ir = nn.Linear(input_dim, hidden_dim)
+        self.W_hr = nn.Linear(hidden_dim, hidden_dim)
+        self.W_in = nn.Linear(input_dim, hidden_dim)
+        self.W_hn = nn.Linear(hidden_dim, hidden_dim)
+        self.W_iz = nn.Linear(input_dim, hidden_dim)
+        self.W_hz = nn.Linear(hidden_dim, hidden_dim)
 
-        self.initialize()
+        # self.initialize()
 
     def initialize(self):
-        init.xavier_normal_(self.Wr.state_dict()['weight'])
-        init.xavier_normal_(self.Ur.state_dict()['weight'])
-        init.xavier_normal_(self.W.state_dict()['weight'])
-        init.xavier_normal_(self.U.state_dict()['weight'])
+        init.xavier_normal_(self.W_ir.state_dict()['weight'])
+        init.xavier_normal_(self.W_hr.state_dict()['weight'])
+        init.xavier_normal_(self.W_in.state_dict()['weight'])
+        init.xavier_normal_(self.W_hn.state_dict()['weight'])
 
-    def forward(self, c, hi_1, g):
-        r_i = torch.sigmoid(self.Wr(c) + self.Ur(hi_1))
-        h_tilda = torch.tanh(self.W(c) + r_i * self.U(hi_1))
-        hi = g * h_tilda + (1 - g) * hi_1
-        return hi
+    def forward(self, c, ht_1, g):
+        r_t = torch.sigmoid(self.W_ir(c) + self.W_hr(ht_1))
+        n_t = torch.tanh(self.W_in(c) + r_t * self.W_hn(ht_1))
+        h_t = g * n_t + (1 - g) * ht_1
+        return h_t
 
 
 class AttGRU(nn.Module):
