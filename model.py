@@ -14,7 +14,8 @@ class UtteranceGRU(nn.Module):
         self.device = device
         self.gru = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, bidirectional=True,
                           num_layers=num_layers, batch_first=True)
-        self.linear = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.linear1 = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.linear2 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
         self.attention = Attention(hidden_dim * 2)
 
@@ -47,11 +48,13 @@ class UtteranceGRU(nn.Module):
         dialogue_embd = dialogue_embd.index_select(0, unsorted_indices)
 
         att_w = F.softmax(self.attention(dialogue_embd), dim=1)
-        utterance_embd = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
+        utterance_embd1 = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
+        utterance_embd2 = self.linear1(utterance_embd1)
 
-        # utterance_embd = torch.max(dialogue_embd, dim=1)[0]
-        utterance_embd = self.linear(utterance_embd)
-        utterance_embd = torch.tanh(utterance_embd)
+        utterance_embd2 = torch.max(dialogue_embd, dim=1)[0]
+        utterance_embd2 = self.linear2(utterance_embd2)
+
+        utterance_embd = torch.tanh(utterance_embd1 + utterance_embd2)
         # utterance_embd = F.leaky_relu(utterance_embd)
         utterance_embd = self.dropout(utterance_embd)
 
