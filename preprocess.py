@@ -4,6 +4,7 @@ import json
 import unicodedata
 from io import open
 import numpy as np
+import os
 
 import fasttext
 
@@ -11,6 +12,8 @@ dir = 'data/'
 data_splits = ['train', 'dev', 'test']
 min_freq = 1
 # max_len = 100
+retrieve = True
+save = True
 
 
 def dump_data(dataset, data):
@@ -49,6 +52,9 @@ def utf_to_ascii(s):
 
 
 def preprocess(dataset):
+
+    if retrieve and os.path.isfile(dataset):
+        read_data(dataset)
     max_len = 0
     max_seq_l = 0
     word_to_id = {}
@@ -143,6 +149,8 @@ def preprocess(dataset):
     # print(len(word_list))
     word_vectors = get_vectors(word_list)
     # word_vectors = np.random.uniform(-0.1, 0.1, (len(word_list), 300))
+    if save:
+        dump_data(dataset, (all_data_indexes, word_vectors, labels))
 
     return all_data_indexes, word_vectors, labels
 
