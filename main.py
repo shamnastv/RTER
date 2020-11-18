@@ -44,7 +44,9 @@ def print_distr_y(y, label, device):
     print(freq)
     m = min(freq)
 
-    weights = [math.pow(m / i, .5) if i != 0 else 1 for i in freq]
+    # weights = [math.pow(m / i, .5) if i != 0 else 1 for i in freq]
+    weights = [m / i if i != 0 else 1 for i in freq]
+
     s = sum(weights)
     weights = [w / s for w in weights]
     global criterion
