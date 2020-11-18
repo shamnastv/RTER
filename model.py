@@ -104,6 +104,8 @@ class RTERModel(nn.Module):
             a_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
                 1).to(self.device)  # b_size x 1 x len_k
 
+            a_mask = masks.unsqueeze(1).eq(1)
+
             mem_out = self.dropout_context(self.context_gru(batches)[0])
             mem_fwd, mem_bwd = mem_out.chunk(2, -1)
             mem_bank = (batches + mem_fwd + mem_bwd).transpose(0, 1).contiguous()
