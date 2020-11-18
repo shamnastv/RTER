@@ -51,8 +51,8 @@ class UtteranceGRU(nn.Module):
 
         # utterance_embd = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd = self.linear(utterance_embd)
-        # utterance_embd = torch.tanh(utterance_embd)
-        utterance_embd = F.leaky_relu(utterance_embd)
+        utterance_embd = torch.tanh(utterance_embd)
+        # utterance_embd = F.leaky_relu(utterance_embd)
         utterance_embd = self.dropout(utterance_embd)
 
         return utterance_embd
