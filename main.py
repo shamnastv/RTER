@@ -20,6 +20,7 @@ max_dev_accuracy = 0
 test_accuracy = 0
 max_acc_epoch = 0
 max_test_f1 = 0
+max_dev_f1 = 0
 
 
 
@@ -139,7 +140,8 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
         recall = [np.round(itp / itp_fn * 100, 2) if itp_fn > 0 else 0 for itp, itp_fn in zip(tp, tp_fn)]
         precision = [np.round(itp / itp_fp * 100, 2) if itp_fp > 0 else 0 for itp, itp_fp in zip(tp, tp_fp)]
         f1 = [np.round(2 * r * p / (r + p), 2) if r + p > 0 else 0 for r, p in zip(recall, precision)]
-        print('dev f1 : ', f1, 'mean : ', np.mean(f1))
+        dev_f1 = np.mean(f1)
+        print('dev f1 : ', f1, 'mean : ', dev_f1)
 
     acc_dev = dev_correct/dev_total
 
@@ -181,15 +183,19 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
 
     acc_test = test_correct/test_total
 
-    global max_acc_epoch, max_dev_accuracy, test_accuracy, max_test_f1
+    global max_acc_epoch, max_dev_accuracy, test_accuracy, max_test_f1, max_dev_f1
     if max_test_f1 < np.mean(f1):
         max_test_f1 = np.mean(f1)
+
+    if max_dev_f1 < dev_f1:
+        max_dev_f1 = dev_f1
+    else:
+        scheduler.step()
+
     if acc_dev > max_dev_accuracy:
         max_dev_accuracy = acc_dev
         max_acc_epoch = epoch
         test_accuracy = acc_test
-    else:
-        scheduler.step()
 
     print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
     print('max validation accuracy :', max_dev_accuracy, 'max acc epoch :', max_acc_epoch,
