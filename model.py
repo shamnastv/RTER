@@ -17,23 +17,10 @@ class UtteranceGRU(nn.Module):
         self.linear1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
-        self.attention = Attention(hidden_dim * 2)
+        # self.attention = Attention(hidden_dim * 2)
+        self.attention = nn.Linear(hidden_dim * 2, 1)
 
     def forward(self, dialogue, seq_lens):
-
-        # uttr_lengths_sorted = np.sort(seq_lens)[::-1].copy()
-        # index_uttr_lengths_sorted = np.argsort(-seq_lens)
-        # index_uttr_lengths_unsort = np.argsort(index_uttr_lengths_sorted)
-        # index_uttr_lengths_sorted = torch.from_numpy(index_uttr_lengths_sorted).to(self.device)
-        # index_uttr_lengths_unsort = torch.from_numpy(index_uttr_lengths_unsort).to(self.device)
-        #
-        # dialogue_sorted = dialogue.transpose(0, 1).index_select(1, index_uttr_lengths_sorted)
-        #
-        # dialogue_packed = pack_padded_sequence(dialogue_sorted, uttr_lengths_sorted)
-        # dialogue_embd = self.gru(dialogue_packed)[0]
-        # dialogue_embd = pad_packed_sequence(dialogue_embd, total_length=dialogue.shape[1])[0]
-        #
-        # dialogue_embd = dialogue_embd.index_select(1, index_uttr_lengths_unsort).transpose(0, 1)
 
         uttr_lengths = torch.from_numpy(seq_lens).to(self.device)
         uttr_lengths, sorted_indices = torch.sort(uttr_lengths, descending=True)
@@ -73,14 +60,6 @@ class AttnGRUCell(nn.Module):
         self.W_iz = nn.Linear(input_dim, hidden_dim)
         self.W_hz = nn.Linear(hidden_dim, hidden_dim)
 
-        # self.initialize()
-
-    def initialize(self):
-        init.xavier_normal_(self.W_ir.state_dict()['weight'])
-        init.xavier_normal_(self.W_hr.state_dict()['weight'])
-        init.xavier_normal_(self.W_in.state_dict()['weight'])
-        init.xavier_normal_(self.W_hn.state_dict()['weight'])
-
     def forward(self, c, ht_1, g):
         r_t = torch.sigmoid(self.W_ir(c) + self.W_hr(ht_1))
         z_t = torch.sigmoid(self.W_iz(c) + self.W_hz(ht_1))
@@ -103,13 +82,6 @@ class AttGRU(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, query, memory, hidden, attn_mask):
-        """
-        :param query: batch x 1 x d_h
-        :param memory: batch x seq_len x d_h
-        :param hidden: 1 x batch x d_h
-        :param attn_mask: mask
-        :return:
-        """
         memory_t = memory.transpose(0, 1).contiguous()  # seq_len x batch x d_h
         seq_len = memory_t.size(0)
         hidden_fwd, hidden_bwd = hidden.chunk(2, 0)  # 2 x batch x d_h
@@ -184,13 +156,6 @@ class RTERModel(nn.Module):
 
             masks = torch.tensor(masks).long().to(self.device)
             attention_mask = masks.unsqueeze(1).eq(1)
-
-            # masks = torch.tensor(masks).long().to(self.device)
-            # q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
-            # b_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
-            #     1).to(self.device)  # b_size x 1 x len_k
-            # if not torch.all(torch.eq(a_mask, b_mask)):
-            #     print('not equal')
 
             query = utterance_embd[1:]
             for hop in range(self.hops):
