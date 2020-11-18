@@ -11,7 +11,7 @@ class UtteranceGRU(nn.Module):
         super(UtteranceGRU, self).__init__()
         self.device = device
         self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dim, bidirectional=True,
-                          num_layers=num_layers, dropout=dropout, batch_first=True)
+                          num_layers=num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
@@ -45,7 +45,8 @@ class UtteranceGRU(nn.Module):
 
         utterance_embd = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd = self.linear(utterance_embd)
-        utterance_embd = torch.tanh(utterance_embd)
+        # utterance_embd = torch.tanh(utterance_embd)
+        utterance_embd = F.leaky_relu(utterance_embd)
         utterance_embd = self.dropout(utterance_embd)
 
         return utterance_embd
@@ -132,7 +133,7 @@ class RTERModel(nn.Module):
 
         self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
 
-        self.fusion_gru = nn.GRU(args.hidden_dim, args.hidden_dim, num_layers=1, bidirectional=True)
+        self.fusion_gru = nn.GRU(input_size=args.hidden_dim, hidden_size=args.hidden_dim, bidirectional=True)
         self.fusion_dropout = nn.Dropout(args.dropout)
 
         self.attGRU = nn.ModuleList()
