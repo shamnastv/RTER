@@ -23,7 +23,6 @@ max_test_f1 = 0
 max_dev_f1 = 0
 
 
-
 def print_distr(x):
     dst = [0] * (max(x) + 1)
     for i in x:
@@ -163,9 +162,9 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
         test_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 
-        if epoch % 10 == 0:
-            test_labels.append(true_label.reshape(-1))
-            test_pred.append(pred.reshape(-1))
+        # if epoch % 10 == 0:
+        #     test_labels.append(true_label.reshape(-1))
+        #     test_pred.append(pred.reshape(-1))
 
         if print_f1:
             true_label = true_label.reshape(-1)
@@ -203,13 +202,13 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
     print('max validation accuracy :', max_dev_accuracy, 'max acc epoch :', max_acc_epoch,
           'max f1 :', max_test_f1, flush=True)
 
-    if epoch % 10 == 0:
-        test_labels = torch.cat(test_labels).cpu().numpy()
-        test_pred = torch.cat(test_pred).cpu().numpy()
-        # for i in range(len(test_labels)):
-        #     print(test_labels[i], test_pred[i])
-        print_distr(test_labels)
-        print_distr(test_pred)
+    # if epoch % 10 == 0:
+    #     test_labels = torch.cat(test_labels).cpu().numpy()
+    #     test_pred = torch.cat(test_pred).cpu().numpy()
+    #     # for i in range(len(test_labels)):
+    #     #     print(test_labels[i], test_pred[i])
+    #     print_distr(test_labels)
+    #     print_distr(test_pred)
 
 
 def main():
