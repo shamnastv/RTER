@@ -63,8 +63,8 @@ class RTERModel(nn.Module):
 
         self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
 
-        self.context_gru = nn.GRU(args.hidden_dim, args.hidden_dim, num_layers=1, bidirectional=True)
-        self.dropout_context = nn.Dropout(0.3)
+        self.fusion_gru = nn.GRU(args.hidden_dim, args.hidden_dim, num_layers=1, bidirectional=True)
+        self.fusion_dropout = nn.Dropout(0.3)
 
         self.attGRU = nn.ModuleList()
         for hop in range(self.hops):
@@ -80,12 +80,13 @@ class RTERModel(nn.Module):
 
         utterance_embd = self.utt_gru(dialogue, seq_lens)
 
-        utterance_embd = utterance_embd.unsqueeze(1)
-        s_out = [utterance_embd[:1]]
-
         masks = []
         batches = []
         window_size = min(self.max_window_size, utterance_embd.size()[0] - 1)
+
+        utterance_embd = utterance_embd.unsqueeze(1)
+        uttr_embd_with_memory = [utterance_embd[:1]]
+
         for i in range(1, utterance_embd.size()[0]):
             padding = max(window_size - i, 0)
             start = 0 if i < window_size + 1 else i - window_size
@@ -97,34 +98,34 @@ class RTERModel(nn.Module):
 
         if len(batches) > 0:
             batches = torch.cat(batches, dim=1)
+            fusion_ouput = self.fusion_gru(batches)[0]
+            fusion_ouput = self.fusion_dropout(fusion_ouput)
+            fusion_output_fwd, fusion_output_bwd = fusion_ouput.chunk(2, -1)
+            mem_bank = (batches + fusion_output_fwd + fusion_output_bwd).transpose(0, 1).contiguous()
+
             masks = torch.tensor(masks).long().to(self.device)
+            attention_mask = masks.unsqueeze(1).eq(1)
 
-            q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
-
-            b_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
-                1).to(self.device)  # b_size x 1 x len_k
-            a_mask = masks.unsqueeze(1).eq(1)
-
-            if torch.all(torch.eq(a_mask, b_mask)):
-                print('equal')
-
-            mem_out = self.dropout_context(self.context_gru(batches)[0])
-            mem_fwd, mem_bwd = mem_out.chunk(2, -1)
-            mem_bank = (batches + mem_fwd + mem_bwd).transpose(0, 1).contiguous()
+            # masks = torch.tensor(masks).long().to(self.device)
+            # q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
+            # b_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
+            #     1).to(self.device)  # b_size x 1 x len_k
+            # if not torch.all(torch.eq(a_mask, b_mask)):
+            #     print('not equal')
 
             query = utterance_embd[1:]
             for hop in range(self.hops):
-                attn_hid = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
-                attn_out = self.attGRU[hop](query, mem_bank, attn_hid, a_mask)
-                attn_out = self.dropout_context(attn_out)
-                attn_out1, attn_out2 = attn_out.chunk(2, -1)
-                query = query + attn_out1 + attn_out2
-            s_out.append(query)
+                attn_hidden = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
+                attn_output = self.attGRU[hop](query, mem_bank, attn_hidden, attention_mask)
+                attn_output = self.fusion_dropout(attn_output)
+                attn_output_fwd, attn_output_bwd = attn_output.chunk(2, -1)
+                query = query + attn_output_fwd + attn_output_bwd
+            uttr_embd_with_memory.append(query)
 
-        s_context = torch.cat(s_out, dim=0).squeeze(1)
-        soutput = self.classifier(s_context)
+        uttr_embd_with_memory = torch.cat(uttr_embd_with_memory, dim=0).squeeze(1)
+        uttr_classes = self.classifier(uttr_embd_with_memory)
 
-        return soutput
+        return uttr_classes
 
 
 class AttnGRUCell(nn.Module):
