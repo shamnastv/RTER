@@ -5,15 +5,18 @@ import torch.nn.functional as F
 from torch.nn import init
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
+from attention import Attention
+
 
 class UtteranceGRU(nn.Module):
-    def __init__(self, in_dm, hidden_dim, num_layers, dropout, device):
+    def __init__(self, input_dim, hidden_dim, num_layers, dropout, device):
         super(UtteranceGRU, self).__init__()
         self.device = device
-        self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dim, bidirectional=True,
+        self.gru = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, bidirectional=True,
                           num_layers=num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
+        self.attention = Attention(hidden_dim * 2)
 
     def forward(self, dialogue, seq_lens):
 
@@ -43,7 +46,10 @@ class UtteranceGRU(nn.Module):
         dialogue_embd = pad_packed_sequence(dialogue_embd, batch_first=True, total_length=dialogue.shape[1])[0]
         dialogue_embd = dialogue_embd.index_select(0, unsorted_indices)
 
-        utterance_embd = torch.max(dialogue_embd, dim=1)[0]
+        att_w = F.softmax(self.attention(dialogue_embd))
+        utterance_embd = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
+
+        # utterance_embd = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd = self.linear(utterance_embd)
         # utterance_embd = torch.tanh(utterance_embd)
         utterance_embd = F.leaky_relu(utterance_embd)
