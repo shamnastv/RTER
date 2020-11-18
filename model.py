@@ -49,7 +49,7 @@ class UtteranceGRU(nn.Module):
 
         att_w = F.softmax(self.attention(dialogue_embd), dim=1)
         utterance_embd1 = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
-        utterance_embd2 = self.linear1(utterance_embd1)
+        utterance_embd1 = self.linear1(utterance_embd1)
 
         utterance_embd2 = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd2 = self.linear2(utterance_embd2)
