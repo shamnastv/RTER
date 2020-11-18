@@ -73,6 +73,8 @@ class AttnGRUCell(nn.Module):
 
     def forward(self, c, ht_1, g):
         r_t = torch.sigmoid(self.W_ir(c) + self.W_hr(ht_1))
+        z_t = torch.sigmoid(self.W_iz(c) + self.W_hz(ht_1))
+        g = torch.sigmoid(g + z_t)
         n_t = torch.tanh(self.W_in(c) + r_t * self.W_hn(ht_1))
         h_t = g * n_t + (1 - g) * ht_1
         return h_t
