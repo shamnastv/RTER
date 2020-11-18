@@ -6,6 +6,9 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=cl1_48h-1G
 
-printf "\n\nHidden Dimension\n\n"
+python3 main.py --hidden_dim 100 --max_window_size 30 --epochs 100 --lr 2e-4 --dataset MELD --dropout .3 --print_f1 --num_layers 1
 
 python3 main.py --hidden_dim 100 --max_window_size 30 --epochs 100 --lr 5e-4 --dataset MELD --dropout .3 --print_f1 --num_layers 1
+
+python3 main.py --hidden_dim 100 --max_window_size 30 --epochs 100 --lr 7e-4 --dataset MELD --dropout .3 --print_f1 --num_layers 1
+
