@@ -86,12 +86,12 @@ class RTERModel(nn.Module):
         batches = []
         window_size = min(self.max_window_size, utterance_embd.size()[0] - 1)
         for i in range(1, utterance_embd.size()[0]):
-            pad = max(window_size - i, 0)
+            padding = max(window_size - i, 0)
             start = 0 if i < window_size + 1 else i - window_size
-            pad_tuple = [0, 0, 0, 0, pad, 0]
-            m_pad = F.pad(utterance_embd[start:i], pad_tuple)
-            batches.append(m_pad)
-            mask = [1] * pad + [0] * (window_size - pad)
+            pad_tuple = [0, 0, 0, 0, padding, 0]
+            memory_padded = F.pad(utterance_embd[start:i], pad_tuple)
+            batches.append(memory_padded)
+            mask = [1] * padding + [0] * (window_size - padding)
             masks.append(mask)
 
         if len(batches) > 0:
@@ -111,7 +111,6 @@ class RTERModel(nn.Module):
             for hop in range(self.hops):
                 attn_hid = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
                 attn_out = self.attGRU[hop](query, mem_bank, attn_hid, a_mask)
-                # attn_weights.append(attn_weight.squeeze(1))
                 attn_out = self.dropout_context(attn_out)
                 attn_out1, attn_out2 = attn_out.chunk(2, -1)
                 query = query + attn_out1 + attn_out2
@@ -143,7 +142,7 @@ class AttnGRUCell(nn.Module):
 
     def forward(self, c, hi_1, g):
         r_i = torch.sigmoid(self.Wr(c) + self.Ur(hi_1))
-        h_tilda = F.tanh(self.W(c) + r_i * self.U(hi_1))
+        h_tilda = torch.tanh(self.W(c) + r_i * self.U(hi_1))
         hi = g * h_tilda + (1 - g) * hi_1
         return hi
 

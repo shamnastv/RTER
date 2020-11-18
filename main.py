@@ -16,6 +16,10 @@ from util import to_torch_tensor
 criterion = nn.CrossEntropyLoss()
 start_time = time.time()
 
+max_dev_accuracy = 0
+test_accuracy = 0
+max_acc_epoch = 0
+
 
 def print_distr(x):
     dst = [0] * (max(x) + 1)
@@ -42,7 +46,7 @@ def print_distr_y(y, label, device):
 
     weights = [m / i if i != 0 else 1 for i in freq]
     global criterion
-    criterion = nn.CrossEntropyLoss(weight=torch.FloatTensor(weights).to(device))
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor(weights, dtype=torch.float32, device=device))
 
 
 def train(epoch, model, optimizer, train_data, device):
@@ -58,6 +62,7 @@ def train(epoch, model, optimizer, train_data, device):
 
         optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
         optimizer.step()
 
         loss = loss.detach().cpu().numpy()
@@ -68,7 +73,7 @@ def train(epoch, model, optimizer, train_data, device):
     return loss_accum
 
 
-def validate(epoch, model, train_data, dev_data, test_data, label_list, device, print_f1):
+def validate(epoch, model, train_data, dev_data, test_data, label_list, device, print_f1, scheduler):
     model.eval()
 
     num_labels = len(label_list)
@@ -175,7 +180,16 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
 
     acc_test = test_correct/test_total
 
+    global max_acc_epoch, max_dev_accuracy, test_accuracy
+    if acc_dev > max_dev_accuracy:
+        max_dev_accuracy = acc_dev
+        max_acc_epoch = epoch
+        test_accuracy = acc_test
+    else:
+        scheduler.step()
+
     print("accuracy train: %f val: %f test: %f" % (acc_train, acc_dev, acc_test), flush=True)
+    print('max validation accuracy : ', max_dev_accuracy, 'max acc epoch : ', max_acc_epoch, flush=True)
 
     if epoch % 10 == 0:
         test_labels = torch.cat(test_labels).cpu().numpy()
@@ -231,12 +245,13 @@ def main():
 
     model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
 
     print(model)
 
     for epoch in range(1, args.epochs + 1):
         train(epoch, model, optimizer, train_data, device)
-        validate(epoch, model, train_data, dev_data, test_data, label_list, device, args.print_f1)
+        validate(epoch, model, train_data, dev_data, test_data, label_list, device, args.print_f1, scheduler)
         print('')
 
 
