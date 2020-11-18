@@ -101,10 +101,12 @@ class RTERModel(nn.Module):
 
             q_mask = torch.ones(masks.size()[0], 1).long().to(self.device)
 
-            a_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
+            b_mask = torch.matmul(q_mask.unsqueeze(2).float(), masks.unsqueeze(1).float()).eq(
                 1).to(self.device)  # b_size x 1 x len_k
-
             a_mask = masks.unsqueeze(1).eq(1)
+
+            if not torch.all(torch.eq(a_mask, b_mask)):
+                print('not equal')
 
             mem_out = self.dropout_context(self.context_gru(batches)[0])
             mem_fwd, mem_bwd = mem_out.chunk(2, -1)
