@@ -39,12 +39,11 @@ def print_distr_y(y, label, device):
 
     print(label)
     print(freq)
-    m = 1
-    for i in freq:
-        if i < m:
-            m = i
+    m = min(freq)
 
-    weights = [m / i if i != 0 else 1 for i in freq]
+    weights = [math.pow(m / i, .5) if i != 0 else 1 for i in freq]
+    s = sum(weights)
+    weights = [w / s for w in weights]
     global criterion
     criterion = nn.CrossEntropyLoss(weight=torch.tensor(weights, dtype=torch.float32, device=device))
 
