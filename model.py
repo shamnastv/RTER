@@ -80,6 +80,7 @@ class RTERModel(nn.Module):
 
         utterance_embd = self.utt_gru(dialogue, seq_lens)
 
+        utterance_embd = utterance_embd.unsqueeze(1)
         s_out = [utterance_embd[:1]]
 
         masks = []

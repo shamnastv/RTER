@@ -245,7 +245,7 @@ def main():
 
     model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
 
     print(model)
 
