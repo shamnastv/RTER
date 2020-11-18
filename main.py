@@ -65,7 +65,7 @@ def train(epoch, model, optimizer, train_data, device):
 
         optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
         optimizer.step()
 
         loss = loss.detach().cpu().numpy()
