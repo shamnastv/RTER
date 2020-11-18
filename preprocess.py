@@ -27,28 +27,28 @@ def read_data(dataset):
 
 
 def utf_to_ascii(s):
-    # s = ''.join(
-    #     c for c in unicodedata.normalize('NFD', s.lower())
-    #     if unicodedata.category(c) != 'Mn'
-    # ).strip()
-    # s = re.sub(r"([!?])", r" \1", s)
-    # s = re.sub(r"[^a-zA-Z!?]+", r" ", s)
-    # return s
-    string = s
-    string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
-    string = re.sub(r"\'s", " \'s", string)
-    string = re.sub(r"\'ve", " \'ve", string)
-    string = re.sub(r"n\'t", " n\'t", string)
-    string = re.sub(r"\'re", " \'re", string)
-    string = re.sub(r"\'d", " \'d", string)
-    string = re.sub(r"\'ll", " \'ll", string)
-    string = re.sub(r",", " , ", string)
-    string = re.sub(r"!", " ! ", string)
-    string = re.sub(r"\(", " ( ", string)
-    string = re.sub(r"\)", " ) ", string)
-    string = re.sub(r"\?", " ? ", string)
-    string = re.sub(r"\s{2,}", " ", string)
-    return string.strip().lower()
+    s = ''.join(
+        c for c in unicodedata.normalize('NFD', s.lower().strip())
+        if unicodedata.category(c) != 'Mn'
+    ).strip()
+    s = re.sub(r"([.!?])", r" \1", s)
+    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
+    return s
+    # string = s
+    # string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+    # string = re.sub(r"\'s", " \'s", string)
+    # string = re.sub(r"\'ve", " \'ve", string)
+    # string = re.sub(r"n\'t", " n\'t", string)
+    # string = re.sub(r"\'re", " \'re", string)
+    # string = re.sub(r"\'d", " \'d", string)
+    # string = re.sub(r"\'ll", " \'ll", string)
+    # string = re.sub(r",", " , ", string)
+    # string = re.sub(r"!", " ! ", string)
+    # string = re.sub(r"\(", " ( ", string)
+    # string = re.sub(r"\)", " ) ", string)
+    # string = re.sub(r"\?", " ? ", string)
+    # string = re.sub(r"\s{2,}", " ", string)
+    # return string.strip().lower()
 
 
 def preprocess(dataset):

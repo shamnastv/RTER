@@ -51,13 +51,82 @@ class UtteranceGRU(nn.Module):
         return utterance_embd
 
 
+class AttnGRUCell(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(AttnGRUCell, self).__init__()
+        self.input_size = input_dim
+        self.hidden_size = hidden_dim
+        self.Wr = nn.Linear(input_dim, hidden_dim)
+        self.Ur = nn.Linear(hidden_dim, hidden_dim)
+        self.W = nn.Linear(input_dim, hidden_dim)
+        self.U = nn.Linear(hidden_dim, hidden_dim)
+
+        self.initialize()
+
+    def initialize(self):
+        init.xavier_normal_(self.Wr.state_dict()['weight'])
+        init.xavier_normal_(self.Ur.state_dict()['weight'])
+        init.xavier_normal_(self.W.state_dict()['weight'])
+        init.xavier_normal_(self.U.state_dict()['weight'])
+
+    def forward(self, c, hi_1, g):
+        r_i = torch.sigmoid(self.Wr(c) + self.Ur(hi_1))
+        h_tilda = torch.tanh(self.W(c) + r_i * self.U(hi_1))
+        hi = g * h_tilda + (1 - g) * hi_1
+        return hi
+
+
+class AttGRU(nn.Module):
+    def __init__(self, hidden_dim, bidirectional):
+        super(AttGRU, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.bidirectional = bidirectional
+        self.gru = AttnGRUCell(hidden_dim, hidden_dim)
+        if self.bidirectional:
+            self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
+
+        self.W = nn.Linear(hidden_dim, hidden_dim)
+        self.U = nn.Linear(hidden_dim, hidden_dim)
+
+    def forward(self, query, context, init_hidden, attn_mask):
+        """
+        :param query: batch x 1 x d_h
+        :param context: batch x seq_len x d_h
+        :param init_hidden: 1 x batch x d_h
+        :param attn_mask: mask
+        :return:
+        """
+        attn = torch.matmul(self.W(query), self.U(context).transpose(1, 2))
+        attn.data.masked_fill_(attn_mask, -np.inf)
+        scores = F.softmax(attn, dim=-1)  # batch x 1 x seq_len
+
+        # AttGRU summary
+        hidden = init_hidden  # 1 x batch x d_h
+        if self.bidirectional:
+            hidden, hidden_bwd = init_hidden.chunk(2, 0)  # 2 x batch x d_h
+        inp = context.transpose(0, 1).contiguous()  # seq_len x batch x d_h
+        gates = scores.transpose(1, 2).transpose(0, 1).contiguous()  # seq_len x batch x 1
+        seq_len = context.size()[1]
+        for i in range(seq_len):
+            hidden = self.gru(inp[i:i + 1], hidden, gates[i:i + 1])
+            if self.bidirectional:
+                hidden_bwd = self.gru_bwd(inp[seq_len - i - 1:seq_len - i], hidden_bwd,
+                                          gates[seq_len - i - 1:seq_len - i])
+
+        output = hidden.transpose(0, 1).contiguous()  # batch x 1 x d_h
+        if self.bidirectional:
+            output = torch.cat([hidden, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
+
+        return output
+
+
 class RTERModel(nn.Module):
-    def __init__(self, args, input_dm, hidden_dim, num_clasees, embeddings, device):
+    def __init__(self, args, input_dm, hidden_dim, num_clasees, word_embeddings, device):
         super(RTERModel, self).__init__()
         self.num_classes = num_clasees
         self.hops = args.hops
         self.max_window_size = args.max_window_size
-        self.embeddings = embeddings
+        self.word_embeddings = word_embeddings
         self.device = device
         self.hidden_dim = hidden_dim
 
@@ -76,7 +145,7 @@ class RTERModel(nn.Module):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
         dialogue_ids = dialogue_ids.to(self.device)
-        dialogue = self.embeddings(dialogue_ids)
+        dialogue = self.word_embeddings(dialogue_ids)
 
         utterance_embd = self.utt_gru(dialogue, seq_lens)
 
@@ -126,70 +195,3 @@ class RTERModel(nn.Module):
         uttr_classes = self.classifier(uttr_embd_with_memory)
 
         return uttr_classes
-
-
-class AttnGRUCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim):
-        super(AttnGRUCell, self).__init__()
-        self.input_size = input_dim
-        self.hidden_size = hidden_dim
-        self.Wr = nn.Linear(input_dim, hidden_dim)
-        self.Ur = nn.Linear(hidden_dim, hidden_dim)
-        self.W = nn.Linear(input_dim, hidden_dim)
-        self.U = nn.Linear(hidden_dim, hidden_dim)
-
-        self.initialize()
-
-    def initialize(self):
-        init.xavier_normal_(self.Wr.state_dict()['weight'])
-        init.xavier_normal_(self.Ur.state_dict()['weight'])
-        init.xavier_normal_(self.W.state_dict()['weight'])
-        init.xavier_normal_(self.U.state_dict()['weight'])
-
-    def forward(self, c, hi_1, g):
-        r_i = torch.sigmoid(self.Wr(c) + self.Ur(hi_1))
-        h_tilda = torch.tanh(self.W(c) + r_i * self.U(hi_1))
-        hi = g * h_tilda + (1 - g) * hi_1
-        return hi
-
-
-class AttGRU(nn.Module):
-    def __init__(self, hidden_dim, bidirectional):
-        super(AttGRU, self).__init__()
-        self.hidden_dim = hidden_dim
-        self.bidirectional = bidirectional
-        self.gru = AttnGRUCell(hidden_dim, hidden_dim)
-        if self.bidirectional:
-            self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
-
-    def forward(self, query, context, init_hidden, attn_mask=None):
-        """
-        :param query: batch x 1 x d_h
-        :param context: batch x seq_len x d_h
-        :param init_hidden: 1 x batch x d_h
-        :param attn_mask: mask
-        :return:
-        """
-        attn = torch.matmul(query, context.transpose(1, 2))
-        if attn_mask is not None:
-            attn.data.masked_fill_(attn_mask, -1e10)
-        scores = F.softmax(attn, dim=-1)  # batch x 1 x seq_len
-
-        # AttGRU summary
-        hidden = init_hidden  # 1 x batch x d_h
-        if self.bidirectional:
-            hidden, hidden_bwd = init_hidden.chunk(2, 0)  # 2 x batch x d_h
-        inp = context.transpose(0, 1).contiguous()  # seq_len x batch x d_h
-        gates = scores.transpose(1, 2).transpose(0, 1).contiguous()  # seq_len x batch x 1
-        seq_len = context.size()[1]
-        for i in range(seq_len):
-            hidden = self.gru(inp[i:i + 1], hidden, gates[i:i + 1])
-            if self.bidirectional:
-                hidden_bwd = self.gru_bwd(inp[seq_len - i - 1:seq_len - i], hidden_bwd,
-                                          gates[seq_len - i - 1:seq_len - i])
-
-        output = hidden.transpose(0, 1).contiguous()  # batch x 1 x d_h
-        if self.bidirectional:
-            output = torch.cat([hidden, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
-
-        return output
