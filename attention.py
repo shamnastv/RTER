@@ -41,7 +41,7 @@ class Attention(nn.Module):
         h = x
         for layer in range(self.num_layers - 1):
             h = self.linears[layer](h)
-            h = self.batch_norms[layer](h)
+            # h = self.batch_norms[layer](h)
             h = self.activation(h)
 
         return self.linears[self.num_layers - 1](h)
