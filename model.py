@@ -77,47 +77,43 @@ class AttnGRUCell(nn.Module):
 
 
 class AttGRU(nn.Module):
-    def __init__(self, hidden_dim, bidirectional):
+    def __init__(self, hidden_dim, dropout):
         super(AttGRU, self).__init__()
         self.hidden_dim = hidden_dim
-        self.bidirectional = bidirectional
-        self.gru = AttnGRUCell(hidden_dim, hidden_dim)
-        if self.bidirectional:
-            self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
+        self.gru_fwd = AttnGRUCell(hidden_dim, hidden_dim)
+        self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
 
         self.W = nn.Linear(hidden_dim, hidden_dim)
         self.U = nn.Linear(hidden_dim, hidden_dim)
 
-    def forward(self, query, context, init_hidden, attn_mask):
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, query, memory, hidden, attn_mask):
         """
         :param query: batch x 1 x d_h
-        :param context: batch x seq_len x d_h
-        :param init_hidden: 1 x batch x d_h
+        :param memory: batch x seq_len x d_h
+        :param hidden: 1 x batch x d_h
         :param attn_mask: mask
         :return:
         """
-        attn = torch.matmul(self.W(query), self.U(context).transpose(1, 2))
-        attn.data.masked_fill_(attn_mask, -np.inf)
-        scores = F.softmax(attn, dim=-1)  # batch x 1 x seq_len
+        memory_t = memory.transpose(0, 1).contiguous()  # seq_len x batch x d_h
+        seq_len = memory_t.size(0)
+        hidden_fwd, hidden_bwd = hidden.chunk(2, 0)  # 2 x batch x d_h
 
-        # AttGRU summary
-        hidden = init_hidden  # 1 x batch x d_h
-        if self.bidirectional:
-            hidden, hidden_bwd = init_hidden.chunk(2, 0)  # 2 x batch x d_h
-        inp = context.transpose(0, 1).contiguous()  # seq_len x batch x d_h
-        gates = scores.transpose(1, 2).transpose(0, 1).contiguous()  # seq_len x batch x 1
-        seq_len = context.size()[1]
+        attention_weights = torch.matmul(self.W(query), self.U(memory).transpose(1, 2))
+        attention_weights.data.masked_fill_(attn_mask, -np.inf)
+        attention_weights = F.softmax(attention_weights, dim=-1)  # batch x 1 x seq_len
+        gates = attention_weights.transpose(1, 2).transpose(0, 1).contiguous()  # seq_len x batch x 1
+
         for i in range(seq_len):
-            hidden = self.gru(inp[i:i + 1], hidden, gates[i:i + 1])
-            if self.bidirectional:
-                hidden_bwd = self.gru_bwd(inp[seq_len - i - 1:seq_len - i], hidden_bwd,
-                                          gates[seq_len - i - 1:seq_len - i])
+            hidden_fwd = self.gru_fwd(memory_t[i:i + 1], hidden_fwd, gates[i:i + 1])
+            hidden_bwd = self.gru_bwd(memory_t[seq_len - i - 1:seq_len - i],
+                                      hidden_bwd, gates[seq_len - i - 1:seq_len - i])
 
-        output = hidden.transpose(0, 1).contiguous()  # batch x 1 x d_h
-        if self.bidirectional:
-            output = torch.cat([hidden, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
+        output = torch.cat([hidden_fwd, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
 
-        return output
+        output = self.dropout(output)
+        return output.chunk(2, -1)
 
 
 class RTERModel(nn.Module):
@@ -133,11 +129,11 @@ class RTERModel(nn.Module):
         self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
 
         self.fusion_gru = nn.GRU(args.hidden_dim, args.hidden_dim, num_layers=1, bidirectional=True)
-        self.fusion_dropout = nn.Dropout(0.3)
+        self.fusion_dropout = nn.Dropout(args.dropout)
 
         self.attGRU = nn.ModuleList()
         for hop in range(self.hops):
-            self.attGRU.append(AttGRU(hidden_dim=hidden_dim, bidirectional=True))
+            self.attGRU.append(AttGRU(hidden_dim=hidden_dim, dropout=args.dropout))
 
         self.classifier = nn.Linear(hidden_dim, self.num_classes)
 
@@ -170,7 +166,7 @@ class RTERModel(nn.Module):
             fusion_ouput = self.fusion_gru(batches)[0]
             fusion_ouput = self.fusion_dropout(fusion_ouput)
             fusion_output_fwd, fusion_output_bwd = fusion_ouput.chunk(2, -1)
-            mem_bank = (batches + fusion_output_fwd + fusion_output_bwd).transpose(0, 1).contiguous()
+            memory_bank = (batches + fusion_output_fwd + fusion_output_bwd).transpose(0, 1).contiguous()
 
             masks = torch.tensor(masks).long().to(self.device)
             attention_mask = masks.unsqueeze(1).eq(1)
@@ -185,9 +181,7 @@ class RTERModel(nn.Module):
             query = utterance_embd[1:]
             for hop in range(self.hops):
                 attn_hidden = torch.zeros(2, masks.size()[0], self.hidden_dim).to(self.device)
-                attn_output = self.attGRU[hop](query, mem_bank, attn_hidden, attention_mask)
-                attn_output = self.fusion_dropout(attn_output)
-                attn_output_fwd, attn_output_bwd = attn_output.chunk(2, -1)
+                attn_output_fwd, attn_output_bwd = self.attGRU[hop](query, memory_bank, attn_hidden, attention_mask)
                 query = query + attn_output_fwd + attn_output_bwd
             uttr_embd_with_memory.append(query)
 
