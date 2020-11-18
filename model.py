@@ -11,7 +11,7 @@ class UtteranceGRU(nn.Module):
         super(UtteranceGRU, self).__init__()
         self.device = device
         self.gru = nn.GRU(input_size=in_dm, hidden_size=hidden_dim, bidirectional=True,
-                          num_layers=num_layers, dropout=dropout)
+                          num_layers=num_layers, dropout=dropout, batch_first=True)
         self.linear = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
