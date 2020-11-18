@@ -8,6 +8,9 @@ model = fasttext.train_unsupervised('data/fil9')
 print(model.get_word_vector("enviroment"))
 model.save_model("model_new")
 
+model = fasttext.load_model("model_new")
+print(model.get_word_vector("enviroment"))
+
 print('model saved')
 # model = fasttext.load_model("model")
 # x = model.get_word_vector("the")
