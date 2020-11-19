@@ -83,21 +83,21 @@ class AttentionGRU(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, query, memory, hidden, attn_mask):
-        memory_t = memory.transpose(0, 1).contiguous()
+        memory_t = memory.transpose(0, 1)#.contiguous()
         seq_len = memory_t.size(0)
         hidden_fwd, hidden_bwd = hidden.chunk(2, 0)
 
         attention_weights = torch.matmul(self.W(query), self.U(memory).transpose(1, 2))
         attention_weights.data.masked_fill_(attn_mask, -np.inf)
         attention_weights = F.softmax(attention_weights, dim=-1)
-        gates = attention_weights.transpose(1, 2).transpose(0, 1).contiguous()
+        gates = attention_weights.transpose(1, 2).transpose(0, 1)#.contiguous()
 
         for i in range(seq_len):
             hidden_fwd = self.gru_fwd(memory_t[i:i + 1], hidden_fwd, gates[i:i + 1])
             hidden_bwd = self.gru_bwd(memory_t[seq_len - i - 1:seq_len - i],
                                       hidden_bwd, gates[seq_len - i - 1:seq_len - i])
 
-        output = torch.cat([hidden_fwd, hidden_bwd], dim=-1).transpose(0, 1).contiguous()
+        output = torch.cat([hidden_fwd, hidden_bwd], dim=-1).transpose(0, 1)#.contiguous()
 
         output = self.dropout(output)
         return output.chunk(2, -1)
@@ -150,7 +150,7 @@ class RTERModel(nn.Module):
             fusion_ouput = self.fusion_gru(batches)[0]
             fusion_ouput = self.fusion_dropout(fusion_ouput)
             fusion_output_fwd, fusion_output_bwd = fusion_ouput.chunk(2, -1)
-            memory_bank = (batches + fusion_output_fwd + fusion_output_bwd).transpose(0, 1).contiguous()
+            memory_bank = (batches + fusion_output_fwd + fusion_output_bwd).transpose(0, 1)#.contiguous()
 
             masks = torch.tensor(masks).long().to(self.device)
             attention_mask = masks.unsqueeze(1).eq(1)
