@@ -16,8 +16,8 @@ class UtteranceGRU(nn.Module):
         self.linear1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
-        # self.attention = Attention(hidden_dim * 2)
-        self.attention = nn.Linear(hidden_dim * 2, 1)
+        self.attention = Attention(hidden_dim * 2)
+        # self.attention = nn.Linear(hidden_dim * 2, 1)
 
     def forward(self, dialogue, seq_lens):
 
