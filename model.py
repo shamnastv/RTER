@@ -129,7 +129,7 @@ class RTERModel(nn.Module):
         dialogue = self.word_embeddings(dialogue_ids)
 
         utterance_embd = self.utt_gru(dialogue, seq_lens)
-        utterance_embd = torch.cat((utterance_embd, speaker), dim=1)
+        utterance_embd = torch.cat((utterance_embd, speaker.to(self.device)), dim=1)
 
         masks = []
         batches = []

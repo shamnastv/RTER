@@ -73,7 +73,7 @@ def train(epoch, model, optimizer, train_data, device):
     idx_train = np.random.permutation(len(feat))
     for i in idx_train:
         lb = torch.from_numpy(label[i]).to(device)
-        pred = model(feat[i], seq_len[i], speaker[i].to(device))
+        pred = model(feat[i], seq_len[i], speaker[i])
         loss = criterion(pred, lb.reshape(-1))
 
         optimizer.zero_grad()
