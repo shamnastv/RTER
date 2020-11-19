@@ -8,7 +8,7 @@ def to_torch_tensor(data):
     for i in range(len(feat)):
         # print(label[i])
         if 0 in seq_len[i]:
-            print(i)
+            print(seq_len[i])
         feat[i] = torch.LongTensor(feat[i])
         label[i] = np.array(label[i])
         seq_len[i] = np.array(seq_len[i])

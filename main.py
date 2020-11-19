@@ -10,6 +10,7 @@ import time
 import math
 
 from model import RTERModel
+from model_baseline import RTERModelBaseline
 from preprocess import preprocess
 from util import to_torch_tensor
 
@@ -65,7 +66,7 @@ def train(epoch, model, optimizer, train_data, device):
 
         optimizer.zero_grad()
         loss.backward()
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
         optimizer.step()
 
         loss = loss.detach().cpu().numpy()
@@ -214,17 +215,16 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
 def main():
     parser = argparse.ArgumentParser(description='Pytorch for RTER')
     parser.add_argument('--device', type=int, default=0, help='which gpu to use if any (default: 0)')
-    parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--hidden_dim', type=int, default=100, help='hidden dimension')
-    parser.add_argument('--hops', type=int, default=1, help='hidden dimension')
-    parser.add_argument('--max_window_size', type=int, default=40, help='hidden dimension')
-    parser.add_argument('--num_layers', type=int, default=1, help='hidden dimension')
-    parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 350)')
-    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate (default: 0.01)')
+    parser.add_argument('--max_window_size', type=int, default=40, help='maximum elements in the memory bank')
+    parser.add_argument('--num_layers', type=int, default=1, help='number of layers')
+    parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train (default: 100)')
+    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate (default: 1e-4)')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('--dataset', type=str, default='MELD', help='dataset')
-    parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.01)')
-    parser.add_argument('--print_f1', action="store_true", help='print f1 score')
+    parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.3)')
+    parser.add_argument('--not_print_f1', action="store_true", help='not print f1 score')
+    parser.add_argument('--baseline', action="store_true", help='run baseline model')
 
     args = parser.parse_args()
 
@@ -254,15 +254,19 @@ def main():
     dev_data = to_torch_tensor(all_data_indexes['dev'])
     test_data = to_torch_tensor(all_data_indexes['test'])
 
-    model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    if args.baseline:
+        model = RTERModelBaseline(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
+    else:
+        model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
+
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.00001)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
 
     print(model)
 
     for epoch in range(1, args.epochs + 1):
         train(epoch, model, optimizer, train_data, device)
-        validate(epoch, model, train_data, dev_data, test_data, label_list, device, args.print_f1, scheduler)
+        validate(epoch, model, train_data, dev_data, test_data, label_list, device, not args.not_print_f1, scheduler)
         print('')
 
 

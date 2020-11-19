@@ -34,14 +34,14 @@ class UtteranceGRU(nn.Module):
         dialogue_embd = pad_packed_sequence(dialogue_embd, batch_first=True, total_length=dialogue.shape[1])[0]
         dialogue_embd = dialogue_embd.index_select(0, unsorted_indices)
 
-        att_w = F.softmax(self.attention(dialogue_embd), dim=1)
-        utterance_embd1 = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
-        utterance_embd1 = self.linear1(utterance_embd1)
+        # att_w = F.softmax(self.attention(dialogue_embd), dim=1)
+        # utterance_embd1 = torch.matmul(att_w.transpose(1, 2), dialogue_embd).squeeze(1)
+        # utterance_embd1 = self.linear1(utterance_embd1)
 
         utterance_embd2 = torch.max(dialogue_embd, dim=1)[0]
         utterance_embd2 = self.linear2(utterance_embd2)
 
-        utterance_embd = torch.tanh(utterance_embd1 + utterance_embd2)
+        utterance_embd = torch.tanh(utterance_embd2)
         # utterance_embd = F.leaky_relu(utterance_embd)
         utterance_embd = self.dropout(utterance_embd)
 
@@ -76,9 +76,6 @@ class AttGRU(nn.Module):
         self.gru_fwd = AttnGRUCell(hidden_dim, hidden_dim)
         self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
 
-        self.W = nn.Linear(hidden_dim, hidden_dim)
-        self.U = nn.Linear(hidden_dim, hidden_dim)
-
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, query, memory, hidden, attn_mask):
@@ -86,7 +83,7 @@ class AttGRU(nn.Module):
         seq_len = memory_t.size(0)
         hidden_fwd, hidden_bwd = hidden.chunk(2, 0)
 
-        attention_weights = torch.matmul(self.W(query), self.U(memory).transpose(1, 2))
+        attention_weights = torch.matmul(query, memory.transpose(1, 2))
         attention_weights.data.masked_fill_(attn_mask, -np.inf)
         attention_weights = F.softmax(attention_weights, dim=-1)
         gates = attention_weights.transpose(1, 2).transpose(0, 1).contiguous()
@@ -96,15 +93,15 @@ class AttGRU(nn.Module):
             hidden_bwd = self.gru_bwd(memory_t[seq_len - i - 1:seq_len - i],
                                       hidden_bwd, gates[seq_len - i - 1:seq_len - i])
 
-        output = torch.cat([hidden_fwd, hidden_bwd], dim=-1).transpose(0, 1).contiguous()
+        output = torch.cat([hidden_fwd, hidden_bwd], dim=-1).transpose(0, 1).contiguous()  # batch x 1 x d_h*2
 
         output = self.dropout(output)
         return output.chunk(2, -1)
 
 
-class RTERModel(nn.Module):
+class RTERModelBaseline(nn.Module):
     def __init__(self, args, input_dm, hidden_dim, num_clasees, word_embeddings, device):
-        super(RTERModel, self).__init__()
+        super(RTERModelBaseline, self).__init__()
         self.num_classes = num_clasees
         self.max_window_size = args.max_window_size
         self.word_embeddings = word_embeddings
