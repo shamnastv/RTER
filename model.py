@@ -123,6 +123,8 @@ class RTERModel(nn.Module):
     def forward(self, dialogue_ids, seq_lens, speaker):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
+        if len(speaker.size()) < 2:
+            speaker.unsqueeze(0)
         dialogue_ids = dialogue_ids.to(self.device)
         dialogue = self.word_embeddings(dialogue_ids)
 
