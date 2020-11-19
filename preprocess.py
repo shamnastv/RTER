@@ -1,7 +1,6 @@
 import pickle
 import re
 import json
-import unicodedata
 from io import open
 import numpy as np
 import os
@@ -11,7 +10,6 @@ import fasttext
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
 min_freq = 3
-# max_len = 100
 retrieve = False
 save = True
 
@@ -55,7 +53,7 @@ def preprocess(dataset):
     max_len = 0
     max_seq_l = 0
     word_to_id = {}
-    word_list = ['<unk>', '<pad>']
+    word_list = ['<unknown>', '<padding>']
     word_freq = {}
     labels = set()
     label_to_id = {}
@@ -117,10 +115,10 @@ def preprocess(dataset):
                     if word in word_to_id:
                         d_id.append(word_to_id[word])
                     else:
-                        d_id.append(word_to_id['<unk>'])
+                        d_id.append(word_to_id['<unknown>'])
 
                 seq_len = min(len(d_id), max_len)
-                d_id += [word_to_id['<pad>']] * (max_len - seq_len)
+                d_id += [word_to_id['<padding>']] * (max_len - seq_len)
                 d_id = d_id[:max_len]
 
                 if seq_len <= 0:
