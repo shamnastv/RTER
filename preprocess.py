@@ -27,13 +27,10 @@ def read_data(dataset):
 
 
 def utf_to_ascii(s):
-    # s = ''.join(
-    #     c for c in unicodedata.normalize('NFD', s.lower().strip())
-    #     if unicodedata.category(c) != 'Mn'
-    # ).strip()
-    # s = re.sub(r"([.!?])", r" \1", s)
-    # s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
-    # return s
+    """
+    Tokenization/string cleaning.
+    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+    """
     string = s
     string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
     string = re.sub(r"\'s", " \'s", string)

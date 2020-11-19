@@ -6,9 +6,9 @@ dataset = 'data/fil9'
 model = fasttext.train_unsupervised('data/fil9')
 
 print(model.get_word_vector("enviroment"))
-model.save_model("model_new")
+model.save_model("model")
 
-model = fasttext.load_model("model_new")
+model = fasttext.load_model("model")
 print(model.get_word_vector("enviroment"))
 
 print('model saved')

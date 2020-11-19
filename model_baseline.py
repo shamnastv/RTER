@@ -14,11 +14,11 @@ class UtteranceGRU(nn.Module):
         self.device = device
         self.gru = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, bidirectional=True,
                           num_layers=num_layers, batch_first=True)
-        self.linear1 = nn.Linear(hidden_dim * 2, hidden_dim)
+        # self.linear1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.dropout = nn.Dropout(dropout)
         # self.attention = Attention(hidden_dim * 2)
-        self.attention = nn.Linear(hidden_dim * 2, 1)
+        # self.attention = nn.Linear(hidden_dim * 2, 1)
 
     def forward(self, dialogue, seq_lens):
 
@@ -48,11 +48,12 @@ class UtteranceGRU(nn.Module):
         return utterance_embd
 
 
-class AttnGRUCell(nn.Module):
+class GRUCellMod(nn.Module):
+    """
+    ref https://pytorch.org/docs/stable/generated/torch.nn.GRU.html
+    """
     def __init__(self, input_dim, hidden_dim):
-        super(AttnGRUCell, self).__init__()
-        self.input_size = input_dim
-        self.hidden_size = hidden_dim
+        super(GRUCellMod, self).__init__()
         self.W_ir = nn.Linear(input_dim, hidden_dim)
         self.W_hr = nn.Linear(hidden_dim, hidden_dim)
         self.W_in = nn.Linear(input_dim, hidden_dim)
@@ -69,12 +70,12 @@ class AttnGRUCell(nn.Module):
         return h_t
 
 
-class AttGRU(nn.Module):
+class AttentionGRU(nn.Module):
     def __init__(self, hidden_dim, dropout):
-        super(AttGRU, self).__init__()
+        super(AttentionGRU, self).__init__()
         self.hidden_dim = hidden_dim
-        self.gru_fwd = AttnGRUCell(hidden_dim, hidden_dim)
-        self.gru_bwd = AttnGRUCell(hidden_dim, hidden_dim)
+        self.gru_fwd = GRUCellMod(hidden_dim, hidden_dim)
+        self.gru_bwd = GRUCellMod(hidden_dim, hidden_dim)
 
         self.dropout = nn.Dropout(dropout)
 
@@ -113,7 +114,7 @@ class RTERModelBaseline(nn.Module):
         self.fusion_gru = nn.GRU(input_size=args.hidden_dim, hidden_size=args.hidden_dim, bidirectional=True)
         self.fusion_dropout = nn.Dropout(args.dropout)
 
-        self.att_gru = AttGRU(hidden_dim=hidden_dim, dropout=args.dropout)
+        self.att_gru = AttentionGRU(hidden_dim=hidden_dim, dropout=args.dropout)
 
         self.classifier = nn.Linear(hidden_dim, self.num_classes)
 

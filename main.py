@@ -12,7 +12,6 @@ import math
 from model import RTERModel
 from model_baseline import RTERModelBaseline
 from preprocess import preprocess
-from util import to_torch_tensor
 
 criterion = nn.CrossEntropyLoss()
 start_time = time.time()
@@ -22,6 +21,20 @@ test_accuracy = 0
 max_acc_epoch = 0
 max_test_f1 = 0
 max_dev_f1 = 0
+
+
+def to_torch_tensor(data):
+    feat, label, seq_len = data
+
+    for i in range(len(feat)):
+        # print(label[i])
+        if 0 in seq_len[i]:
+            print(seq_len[i])
+        feat[i] = torch.LongTensor(feat[i])
+        label[i] = np.array(label[i])
+        seq_len[i] = np.array(seq_len[i])
+
+    return feat, label, seq_len
 
 
 def print_distr(x):
