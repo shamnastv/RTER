@@ -31,7 +31,7 @@ def to_torch_tensor(data):
         feat[i] = torch.LongTensor(feat[i])
         label[i] = np.array(label[i])
         seq_len[i] = np.array(seq_len[i])
-        speaker[i] = torch.tensor(speaker[i]).int()
+        speaker[i] = torch.tensor(speaker[i]).float()
 
     return feat, label, seq_len, speaker
 
