@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --partition=cl1_48h-1G
 
-python3 main.py --hidden_dim 100 --max_window_size 40 --epochs 100 --lr 5e-5 --dataset MELD --dropout .3 --num_layers 1
+python3 main.py --hidden_dim 100 --max_window_size 40 --epochs 100 --lr 2.5e-4 --dataset MELD --dropout .3 --num_layers 1
 
 #python3 main.py --hidden_dim 100 --max_window_size 30 --epochs 100 --lr 1e-3 --dataset MELD --dropout .3 --num_layers 1
 
