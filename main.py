@@ -31,7 +31,7 @@ def to_torch_tensor(data):
         feat[i] = torch.LongTensor(feat[i])
         label[i] = np.array(label[i])
         seq_len[i] = np.array(seq_len[i])
-        speaker[i] = torch.tensor(speaker).int()
+        speaker[i] = torch.tensor(speaker[i]).int()
 
     return feat, label, seq_len, speaker
 
@@ -99,13 +99,13 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
     tp_fp = np.zeros(num_labels)
     tp_fn = np.zeros(num_labels)
 
-    feat, label, seq_len = train_data
+    feat, label, seq_len, speaker = train_data
     train_correct = 0
     train_total = 0
     for i in range(len(feat)):
         true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
-            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+            pred = model(feat[i], seq_len[i], speaker[i]).max(1, keepdim=True)[1]
         train_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         train_total += len(feat[i])
 
@@ -131,13 +131,13 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
     tp_fp = np.zeros(num_labels)
     tp_fn = np.zeros(num_labels)
 
-    feat, label, seq_len = dev_data
+    feat, label, seq_len, speaker = dev_data
     dev_correct = 0
     dev_total = 0
     for i in range(len(feat)):
         true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
-            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+            pred = model(feat[i], seq_len[i], speaker[i]).max(1, keepdim=True)[1]
         dev_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         dev_total += len(feat[i])
 
@@ -163,7 +163,7 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
     tp_fp = np.zeros(num_labels)
     tp_fn = np.zeros(num_labels)
 
-    feat, label, seq_len = test_data
+    feat, label, seq_len, speaker = test_data
     test_correct = 0
     test_total = 0
     test_labels = []
@@ -171,7 +171,7 @@ def validate(epoch, model, train_data, dev_data, test_data, label_list, device, 
     for i in range(len(feat)):
         true_label = torch.from_numpy(label[i]).to(device)
         with torch.no_grad():
-            pred = model(feat[i], seq_len[i]).max(1, keepdim=True)[1]
+            pred = model(feat[i], seq_len[i], speaker[i]).max(1, keepdim=True)[1]
         test_correct += pred.eq(true_label.view_as(pred)).sum().cpu().item()
         test_total += len(feat[i])
 

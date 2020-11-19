@@ -93,7 +93,6 @@ def preprocess(dataset):
 
             all_data[ds] = (dialogues, emotions, speaker, speakers_list)
 
-    print(speakers_list)
     labels = list(labels)
     labels.sort()
     print('max_len', max_len)
