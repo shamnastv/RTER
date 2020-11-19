@@ -22,7 +22,7 @@ max_dev_f1 = 0
 
 
 def to_torch_tensor(data):
-    feat, label, seq_len = data
+    feat, label, seq_len, speaker = data
 
     for i in range(len(feat)):
         # print(label[i])
@@ -31,8 +31,9 @@ def to_torch_tensor(data):
         feat[i] = torch.LongTensor(feat[i])
         label[i] = np.array(label[i])
         seq_len[i] = np.array(seq_len[i])
+        speaker[i] = torch.tensor(speaker).int()
 
-    return feat, label, seq_len
+    return feat, label, seq_len, speaker
 
 
 def print_distr(x):
@@ -67,12 +68,12 @@ def print_distr_y(y, label, device):
 def train(epoch, model, optimizer, train_data, device):
     model.train()
 
-    feat, label, seq_len = train_data
+    feat, label, seq_len, speaker = train_data
     loss_accum = 0
     idx_train = np.random.permutation(len(feat))
     for i in idx_train:
         lb = torch.from_numpy(label[i]).to(device)
-        pred = model(feat[i], seq_len[i])
+        pred = model(feat[i], seq_len[i], speaker[i].to(device))
         loss = criterion(pred, lb.reshape(-1))
 
         optimizer.zero_grad()
@@ -265,10 +266,12 @@ def main():
     dev_data = to_torch_tensor(all_data_indexes['dev'])
     test_data = to_torch_tensor(all_data_indexes['test'])
 
+    speaker_dim = train_data[3][0].size(1)
+
     if args.baseline:
         model = RTERModelBaseline(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
     else:
-        model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, device).to(device)
+        model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, speaker_dim, device).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.00001)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)

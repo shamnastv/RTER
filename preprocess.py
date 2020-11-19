@@ -58,18 +58,20 @@ def preprocess(dataset):
     labels = set()
     label_to_id = {}
     all_data = {}
+    max_n_spk = 0
     for ds in data_splits:
+        speakers_list = []
         filename = dir + dataset + '/' + dataset + '_' + ds + '.json'
         with open(filename, encoding='utf-8') as data_file:
             data = json.loads(data_file.read())
 
         dialogues = [[utf_to_ascii(utter['utterance']) for utter in dialog] for dialog in data]
         emotions = [[utter['emotion'] for utter in dialog] for dialog in data]
+        speaker = [[utter['speaker'] for utter in dialog] for dialog in data]
 
-        all_data[ds] = (dialogues, emotions)
-
-        for dia, emo in zip(dialogues, emotions):
-            for d, e in zip(dia, emo):
+        for dia, emo, spk in zip(dialogues, emotions, speaker):
+            spkr = set()
+            for d, e, sp in zip(dia, emo, spk):
                 words = d.split()
                 if len(words) > max_len:
                     max_len = len(words)
@@ -80,7 +82,18 @@ def preprocess(dataset):
                     else:
                         word_freq[word] = 1
                 labels.add(e.strip())
+                spkr.add(sp.strip())
+            spkr = list(spkr)
+            spkr_to_id = {}
+            if max_n_spk < len(spkr):
+                max_n_spk = len(spkr)
+            for i, sp in enumerate(spkr):
+                spkr_to_id[sp] = i
+            speakers_list.append(spkr_to_id)
 
+            all_data[ds] = (dialogues, emotions, speaker, speakers_list)
+
+    print(speakers_list)
     labels = list(labels)
     labels.sort()
     print('max_len', max_len)
@@ -99,17 +112,22 @@ def preprocess(dataset):
 
     print(len(word_freq))
     for split in data_splits:
-        dialogues, emotions = all_data[split]
+        dialogues, emotions, speaker, speakers_list = all_data[split]
         dialogues_id = []
         emotions_id = []
         seq_lens = []
-        for dia, emo in zip(dialogues, emotions):
+        speaker_id = []
+        for dia, emo, spkr, sp_to_id in zip(dialogues, emotions, speaker, speakers_list):
             dia_id = []
             emo_id = []
             sq_len = []
-            for d, e in zip(dia, emo):
+            spk_id = []
+            for d, e, spk in zip(dia, emo, spkr):
                 d_id = []
                 # e_id = []
+                sp = [0] * max_n_spk
+                sp[sp_to_id[spk]] = 1
+                spk_id.append(sp)
                 words = d.split()
                 for word in words:
                     if word in word_to_id:
@@ -135,8 +153,9 @@ def preprocess(dataset):
             dialogues_id.append(dia_id)
             emotions_id.append(emo_id)
             seq_lens.append(sq_len)
+            speaker_id.append(spk_id)
         # print(dialogues_id[0][0])
-        all_data_indexes[split] = (dialogues_id, emotions_id, seq_lens)
+        all_data_indexes[split] = (dialogues_id, emotions_id, seq_lens, speaker_id)
 
     print('max_seq_len', max_seq_l)
     # print(all_data_indexes)

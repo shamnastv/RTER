@@ -103,7 +103,7 @@ class AttentionGRU(nn.Module):
 
 
 class RTERModel(nn.Module):
-    def __init__(self, args, input_dm, hidden_dim, num_clasees, word_embeddings, device):
+    def __init__(self, args, input_dm, hidden_dim, num_clasees, word_embeddings, speaker_dim, device):
         super(RTERModel, self).__init__()
         self.num_classes = num_clasees
         self.max_window_size = args.max_window_size
@@ -111,7 +111,7 @@ class RTERModel(nn.Module):
         self.device = device
         self.hidden_dim = hidden_dim
 
-        self.utt_gru = UtteranceGRU(input_dm, hidden_dim, args.num_layers, args.dropout, device)
+        self.utt_gru = UtteranceGRU(input_dm, hidden_dim - speaker_dim, args.num_layers, args.dropout, device)
 
         self.fusion_gru = nn.GRU(input_size=args.hidden_dim, hidden_size=args.hidden_dim, bidirectional=True)
         self.fusion_dropout = nn.Dropout(args.dropout)
@@ -120,13 +120,14 @@ class RTERModel(nn.Module):
 
         self.classifier = nn.Linear(hidden_dim, self.num_classes)
 
-    def forward(self, dialogue_ids, seq_lens):
+    def forward(self, dialogue_ids, seq_lens, speaker):
         if len(dialogue_ids.size()) < 2:
             dialogue_ids.unsqueeze(0)
         dialogue_ids = dialogue_ids.to(self.device)
         dialogue = self.word_embeddings(dialogue_ids)
 
         utterance_embd = self.utt_gru(dialogue, seq_lens)
+        utterance_embd = torch.cat((utterance_embd, speaker), dim=0)
 
         masks = []
         batches = []
