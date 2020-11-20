@@ -234,7 +234,7 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-4, help='learning rate (default: 1e-4)')
     parser.add_argument('--seed', type=int, default=0, help='random seed')
     parser.add_argument('--dataset', type=str, default='MELD', help='dataset')
-    parser.add_argument('--dropout', type=float, default=0.3, help='learning rate (default: 0.3)')
+    parser.add_argument('--dropout', type=float, default=0.3, help='Dropout (default: 0.3)')
     parser.add_argument('--not_print_f1', action="store_true", help='not print f1 score')
     parser.add_argument('--baseline', action="store_true", help='run baseline model')
 
@@ -274,7 +274,7 @@ def main():
         model = RTERModel(args, input_dim, args.hidden_dim, num_classes, word_embeddings, speaker_dim, device).to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=.00001)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.95)
 
     print(model)
 
