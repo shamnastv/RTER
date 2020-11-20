@@ -9,9 +9,9 @@ import fasttext
 
 dir = 'data/'
 data_splits = ['train', 'dev', 'test']
-min_freq = 3
+min_freq = 1
 retrieve = False
-save = True
+save = False
 
 
 def dump_data(dataset, data):
