@@ -7,4 +7,4 @@
 #SBATCH --partition=cl1_48h-1G
 
 
-python3 main.py --hidden_dim 300 --max_window_size 40 --epochs 50 --lr 1e-3 --dataset MELD --dropout .5 --num_layers 1
+python3 main.py --hidden_dim 300 --max_window_size 40 --epochs 50 --lr 1e-2 --dataset MELD --dropout .5 --num_layers 1
