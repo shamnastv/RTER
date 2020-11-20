@@ -260,7 +260,7 @@ def main():
 
     word_embeddings = nn.Embedding(vocab_size, input_dim, padding_idx=1)
     word_embeddings.weight.data.copy_(torch.from_numpy(word_vectors))
-    word_embeddings.weight.requires_grad = False
+    word_embeddings.weight.requires_grad = True
 
     train_data = to_torch_tensor(all_data_indexes['train'])
     dev_data = to_torch_tensor(all_data_indexes['dev'])
