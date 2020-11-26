@@ -136,6 +136,9 @@ def preprocess(dataset):
                     else:
                         d_id.append(word_to_id['<unknown>'])
 
+                if len(d_id) == 0:
+                    d_id = [word_to_id['<unknown>']]
+
                 seq_len = min(len(d_id), max_len)
                 d_id += [word_to_id['<padding>']] * (max_len - seq_len)
                 d_id = d_id[:max_len]
