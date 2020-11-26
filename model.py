@@ -141,7 +141,7 @@ class RTERModel(nn.Module):
         for i in range(1, utterance_embd.size()[0]):
             padding = max(window_size - i, 0)
             start = 0 if i < window_size + 1 else i - window_size
-            pad_tuple = [0, 0, 0, 0, padding, 0]
+            pad_tuple = [0, 0, 0, 0, 0, padding]
             memory_padded = F.pad(utterance_embd[start:i], pad_tuple)
             batches.append(memory_padded)
             mask = [1] * padding + [0] * (window_size - padding)
