@@ -258,7 +258,7 @@ def main():
     vocab_size = word_vectors.shape[0]
     num_classes = len(label_list)
 
-    word_embeddings = nn.Embedding(vocab_size, input_dim, padding_idx=1)
+    word_embeddings = nn.Embedding(vocab_size, input_dim, padding_idx=0)
     word_embeddings.weight.data.copy_(torch.from_numpy(word_vectors))
     word_embeddings.weight.requires_grad = True
 

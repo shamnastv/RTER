@@ -55,7 +55,7 @@ def preprocess(dataset):
     max_len = 0
     max_seq_l = 0
     word_to_id = {}
-    word_list = ['<unknown>', '<padding>']
+    word_list = ['<padding>', '<unknown>']
     word_freq = {}
     labels = set()
     label_to_id = {}
@@ -179,8 +179,8 @@ def get_vectors(word_list):
         word_vectors.append(model.get_word_vector(word_list[i]))
     model = None
     vec_dm = len(word_vectors[2])
-    word_vectors[0] = np.random.uniform(-0.1, 0.1, vec_dm)
-    word_vectors[1] = np.zeros(vec_dm, dtype=np.float32)
+    word_vectors[0] = np.zeros(vec_dm, dtype=np.float32)
+    word_vectors[1] = np.random.uniform(-0.1, 0.1, vec_dm)
     # print(word_vectors[:5])
     word_vectors = np.array(word_vectors)
 
